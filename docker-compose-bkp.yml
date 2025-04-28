@@ -1,0 +1,104 @@
+services:
+  node1:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_NAME=node1
+      - SEED_NODES=node2,node3,node4
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 3s
+      retries: 10
+      start_period: 5s
+
+  node2:
+    build: .
+    ports:
+      - "5001:5000"
+    environment:
+      - NODE_NAME=node2
+      - SEED_NODES=node1,node3,node5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 3s
+      retries: 10
+      start_period: 5s
+
+  node3:
+    build: .
+    ports:
+      - "5002:5000"
+    environment:
+      - NODE_NAME=node3
+      - SEED_NODES=node1,node2,node4
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 3s
+      retries: 10
+      start_period: 5s
+
+  node4:
+    build: .
+    ports:
+      - "5003:5000"
+    environment:
+      - NODE_NAME=node4
+      - SEED_NODES=node1,node3,node5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 3s
+      retries: 10
+      start_period: 5s
+
+  node5:
+    build: .
+    ports:
+      - "5004:5000"
+    environment:
+      - NODE_NAME=node5
+      - SEED_NODES=node2,node4,node3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 3s
+      retries: 10
+      start_period: 5s
+  
+  client:
+    build:
+      context: ./client
+    depends_on:
+      - node1
+      - node2
+      - node3
+      - node4
+      - node5
+    environment:
+      - TARGET_NODES=node1,node2,node3,node4,node5
+      - UPLOAD_FILE=test.txt
+      - CONCURRENCY=20
