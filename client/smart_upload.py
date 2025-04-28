@@ -18,7 +18,7 @@ def wait_until_available(node, retries=10, delay=5):
     print(f"{url} did not respond after {retries} retries.")
     return False
 
-# Check node availability
+# Check node's availability
 print("Checking node availability...")
 NODES = [node for node in NODES if wait_until_available(node)]
 
