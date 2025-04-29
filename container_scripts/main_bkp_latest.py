@@ -8,9 +8,12 @@ import subprocess
 import tempfile
 import requests
 
+# All custom modules
 # Logging module
 from observability import Observability
 observability = Observability(log_file_path="metrics.log")
+# Zones config
+from zone_config import ZONE_RTT
 
 app = FastAPI()
 
@@ -32,10 +35,19 @@ def health():
         "queue_length": len(job_queue)
     }
 
+# @app.get("/peers")
+# def get_peers():
+#     # Always include self so other nodes can learn about us
+#     self_info = {"host": os.getenv("NODE_NAME"), "port": 5000}
+#     return {"peers": [self_info] + peer_list}
+
 @app.get("/peers")
 def get_peers():
-    # Always include self so other nodes can learn about us
-    self_info = {"host": os.getenv("NODE_NAME"), "port": 5000}
+    self_info = {
+        "host": os.getenv("NODE_NAME"),
+        "port": 5000,
+        "zone": os.getenv("NODE_ZONE", "FRA")  # NEW: add own zone
+    }
     return {"peers": [self_info] + peer_list}
 
 @app.get("/cache_stats")
@@ -143,18 +155,48 @@ async def transcode(data: bytes) -> bytes:
         except Exception as e:
             print(f"[Cleanup] Error cleaning up files: {e}")
 
+# def get_best_peer():
+#     now = time.time()
+#     best = None
+#     best_score = float("inf")
+#     for peer, stats in peer_status.items():
+#         if now - stats["last_updated"] > 10:
+#             continue
+#         score = stats["cpu"] + stats["queue"]
+#         if score < best_score:
+#             best_score = score
+#             best = peer
+#     return best  # can be 'self' or 'nodeX:port'
+
 def get_best_peer():
     now = time.time()
     best = None
     best_score = float("inf")
+
     for peer, stats in peer_status.items():
+        if peer == "self":
+            continue
         if now - stats["last_updated"] > 10:
             continue
-        score = stats["cpu"] + stats["queue"]
+
+        peer_host, peer_port = peer.split(":")
+        # Find zone dynamically
+        peer_zone = None
+        for p in peer_list:
+            if p["host"] == peer_host and str(p["port"]) == peer_port:
+                peer_zone = p.get("zone", "FRA")
+                break
+
+        rtt = ZONE_RTT.get((CURRENT_ZONE, peer_zone), 100)
+
+        load_score = stats["cpu"] + stats["queue"]
+        score = (0.5 * rtt) + (0.5 * load_score)
+
         if score < best_score:
             best_score = score
             best = peer
-    return best  # can be 'self' or 'nodeX:port'
+
+    return best
 
 async def monitor_self():
     global peer_status
@@ -242,8 +284,13 @@ async def gossip_peers(seed_nodes=None):
             else:
                 try:
                     their_peers = response.json().get("peers", [])
+                    # for new_peer in their_peers:
+                    #     if new_peer not in peer_list and new_peer["host"] != os.getenv("NODE_NAME"):
+                    #         peer_list.append(new_peer)
+                    #         print(f"[Gossip] Discovered new peer: {new_peer}")
                     for new_peer in their_peers:
-                        if new_peer not in peer_list and new_peer["host"] != os.getenv("NODE_NAME"):
+                        exists = any(p["host"] == new_peer["host"] and p["port"] == new_peer["port"] for p in peer_list)
+                        if not exists and new_peer["host"] != os.getenv("NODE_NAME"):
                             peer_list.append(new_peer)
                             print(f"[Gossip] Discovered new peer: {new_peer}")
                 except Exception as e:
@@ -369,32 +416,3 @@ async def lifespan(app: FastAPI):
         yield  # Still yield to let FastAPI continue running
 
 app.router.lifespan_context = lifespan
-
-# @app.on_event("startup")
-# async def startup():
-#     try:
-#         global peer_list
-#         current_node = os.getenv("NODE_NAME")
-#         seed_nodes = os.getenv("SEED_NODES", "").split(",")
-
-#         # Now, seed_nodes = ['node2', 'node3', 'node4'] for example
-#         # We will later use it like: f"http://{seed}:5000"
-
-#         if not seed_nodes:
-#             print("[Startup] No seed nodes provided.")
-#             return
-        
-#         # Add a random sleep between 1 and 10 seconds BEFORE fetching seeds
-#         delay = random.randint(1, 10)
-#         print(f"[Startup] Sleeping for {delay} seconds before contacting seeds...")
-#         await asyncio.sleep(delay)
-
-#         await fetch_from_seeds(seed_nodes)
-
-#         loop = asyncio.get_event_loop()
-#         loop.create_task(gossip_peers(seed_nodes))
-#         loop.create_task(monitor_self())
-#         loop.create_task(poll_peers())
-#     except Exception as e:
-#         print(f"[Startup] CRITICAL ERROR: {e}")
-    
