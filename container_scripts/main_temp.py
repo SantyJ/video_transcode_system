@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Request
+from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import StreamingResponse
 from cachetools import LRUCache
 from contextlib import asynccontextmanager
@@ -32,7 +32,6 @@ def root():
 def health():
     return {
         "cpu": psutil.cpu_percent(),
-        "memory": psutil.virtual_memory().percent,   # NEW
         "queue_length": len(job_queue)
     }
 
@@ -81,13 +80,13 @@ async def upload(file: UploadFile = File(...), request: Request = None):
     content_hash = hashlib.sha256(content).hexdigest()
     origin_zone = request.headers.get("x-origin-zone") or os.getenv("NODE_ZONE")
 
-    # Check cache first
+    # Check cache
     if content_hash in cache:
         print(f"[Cache] Cache hit for {content_hash}")
         if origin_zone == os.getenv("NODE_ZONE"):
-            observability.local_response(os.getenv("NODE_NAME"))
+            observability.offload_success_local("self")
         else:
-            observability.remote_response(os.getenv("NODE_NAME"))
+            observability.offload_success_remote("self")
         observability.cache_hit()
         observability.local_processing()
         transcoded_data = cache[content_hash]
@@ -102,16 +101,18 @@ async def upload(file: UploadFile = File(...), request: Request = None):
                 files = {"file": (file.filename, content, file.content_type)}
                 headers = {"x-origin-zone": origin_zone}
                 r = await client.post(f"http://{best_peer}/upload", files=files, headers=headers)
-                if curr_zone == best_peer_zone:
-                    print(f"[Same-Region Offload] Successfully offloaded to {best_peer}")
+
+                if origin_zone == best_peer_zone:
+                    print(f"[Same-Region Offload] {origin_zone} -> {best_peer_zone}")
                     observability.offload_success_local(best_peer)
                 else:
-                    print(f"[Cross-Region Offload] Successfully offloaded to {best_peer} | {curr_zone} -> {best_peer_zone}")
+                    print(f"[Cross-Region Offload] {origin_zone} -> {best_peer_zone}")
                     observability.offload_success_remote(best_peer)
+
                 observability.offload_success(best_peer)
 
                 transcoded_data = r.content
-                cache[content_hash] = transcoded_data  # Cache offloaded result too
+                cache[content_hash] = transcoded_data
 
                 return StreamingResponse(io.BytesIO(transcoded_data), media_type="video/mp4")
         except Exception as e:
@@ -123,15 +124,16 @@ async def upload(file: UploadFile = File(...), request: Request = None):
     cache[content_hash] = transcoded_data
     job_queue.remove(content_hash)
     print(f"[Local] Processed video locally: {content_hash}")
+
     if origin_zone == os.getenv("NODE_ZONE"):
-        observability.local_response(os.getenv("NODE_NAME"))
+        observability.offload_success_local("self")
     else:
-        observability.remote_response(os.getenv("NODE_NAME"))
+        observability.offload_success_remote("self")
+
     observability.local_processing()
     observability.cache_miss()
 
     return StreamingResponse(io.BytesIO(transcoded_data), media_type="video/mp4")
-
 # def simulate_job(data):
 #     time.sleep(2)
 #     return f"Processed {len(data)} bytes"
@@ -209,18 +211,7 @@ def get_best_peer():
 
         rtt = ZONE_RTT.get((os.getenv("NODE_ZONE"), peer_zone), 100) # If unable to fetch RTT info default to 100
 
-        # For further analysis (tunable weights for each metric)
-        # CPU_WEIGHT = 0.3
-        # MEM_WEIGHT = 0.3
-        # QUEUE_WEIGHT = 0.4
-
-        # load_score = (
-        #     CPU_WEIGHT * stats["cpu"] +
-        #     MEM_WEIGHT * stats.get("memory", 100) +
-        #     QUEUE_WEIGHT * stats["queue"]
-        # )
-
-        load_score = stats["cpu"] + stats["queue"] + stats["memory"]
+        load_score = stats["cpu"] + stats["queue"]
         score = (0.5 * rtt) + (0.5 * load_score)
 
         if score < best_score:
@@ -234,11 +225,9 @@ async def monitor_self():
     global peer_status
     cpu = psutil.cpu_percent()
     queue = len(job_queue)
-    memory = psutil.virtual_memory().percent
     peer_status["self"] = {
         "cpu": cpu,
         "queue": queue,
-        "memory": memory,
         "last_updated": time.time()
     }
     await asyncio.sleep(5)
@@ -261,7 +250,6 @@ async def poll_peers():
                 print(f"[Poll] Failed to reach {peer_key}: {response}")
                 peer_status[peer_key] = {
                     "cpu": 100,
-                    "memory": 100,
                     "queue": 100,
                     "last_updated": 0
                 }
@@ -270,7 +258,6 @@ async def poll_peers():
                     data = response.json()
                     peer_status[peer_key] = {
                         "cpu": data["cpu"],
-                        "memory": data["memory"],
                         "queue": data["queue_length"],
                         "last_updated": time.time()
                     }
@@ -279,7 +266,6 @@ async def poll_peers():
                     print(f"[Poll] Error parsing response from {peer_key}: {e}")
                     peer_status[peer_key] = {
                         "cpu": 100,
-                        "memory": 100,
                         "queue": 100,
                         "last_updated": 0
                     }
@@ -371,21 +357,16 @@ async def fetch_from_seeds(seed_nodes, retries=5):
 async def periodic_metrics_push():
     while True:
         try:
-            process = psutil.Process()
-            mem_info = process.memory_info()
             metrics = {
                 "node_id": os.getenv("NODE_NAME", "unknown_node"),
                 "node_region": os.getenv("NODE_ZONE", "unknown_region"),
                 "cpu_load": psutil.cpu_percent(),
-                "memory_usage": round((mem_info.rss / psutil.virtual_memory().total) * 100, 2),
                 "queue_length": len(job_queue),
                 "cache_hits": observability.cache_hits,
                 "cache_misses": observability.cache_misses,
                 "offloads_total": observability.offloads,
                 "offloads_same_region": observability.offloads_local,
                 "offloads_cross_region": observability.offloads_remote,
-                "same_region_responses": observability.local_responses,
-                "cross_region_responses": observability.remote_responses,
                 "local_processings": observability.local_processings,
                 "uptime_seconds": int(time.time() - observability.start_time)
             }

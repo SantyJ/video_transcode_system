@@ -8,10 +8,10 @@ RUN apt-get update && apt-get install -y curl iputils-ping netcat-openbsd wget &
 WORKDIR /app
 
 # Copy scripts to container
-COPY central_server.py .
+COPY . .
 
 # install modules
-RUN pip install requests fastapi uvicorn
+RUN pip install requests fastapi uvicorn aiofiles
 
 # Expose FastAPI's port
 EXPOSE 8005
