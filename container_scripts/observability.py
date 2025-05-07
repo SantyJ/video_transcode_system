@@ -13,6 +13,7 @@ class Observability:
         self.local_responses = 0
         self.remote_responses = 0
         self.local_processings = 0
+        self.failures = 0
         self.start_time = time.time()
         self.log_file_path = log_file_path
 
@@ -59,7 +60,11 @@ class Observability:
     def local_processing(self):
         self.local_processings += 1
         self.log("local_processing")
+    
+    def failed_request(self):
+        self.failures += 1
+        self.log("request_failed")
 
     def summary(self):
         elapsed = time.time() - self.start_time
-        self.log("summary", f"hits={self.cache_hits}, misses={self.cache_misses}, offloads_total={self.offloads}, offloads_same_region={self.offloads_local}, offloads_cross_region={self.offloads_remote}, responses_same_region={self.local_responses}, responses_cross_region={self.remote_responses}, local_processings={self.local_processings}, uptime={elapsed:.1f}s")
+        self.log("summary", f"hits={self.cache_hits}, misses={self.cache_misses}, offloads_total={self.offloads}, offloads_same_region={self.offloads_local}, offloads_cross_region={self.offloads_remote}, responses_same_region={self.local_responses}, responses_cross_region={self.remote_responses}, local_processings={self.local_processings}, failures={self.failures}, uptime={elapsed:.1f}s")

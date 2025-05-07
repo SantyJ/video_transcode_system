@@ -46,6 +46,17 @@
   <h1>🚀 System Metrics Dashboard</h1>
 
   <h2>📊 Per-Node Metrics Over Time</h2>
+  <h3>🩺 Node Health Status</h3>
+  <table id="nodeHealthTable">
+    <thead>
+      <tr>
+        <th>Node</th>
+        <th>Status</th>
+        <th>Last Seen</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
   <div class="chart-container"><canvas id="cpuChart"></canvas><a class="reset-link" href="#" onclick="cpuChart.resetZoom()">Reset Zoom</a></div>
     <!-- ✅ CPU Summary Table -->
     <h3>🧮 CPU Summary (Per Node)</h3>
@@ -104,26 +115,150 @@
     </table>
   <div class="chart-container"><canvas id="offloadSameChart"></canvas><a class="reset-link" href="#" onclick="offloadSameChart.resetZoom()">Reset Zoom</a></div>
   <div class="chart-container"><canvas id="offloadCrossChart"></canvas><a class="reset-link" href="#" onclick="offloadCrossChart.resetZoom()">Reset Zoom</a></div>
+  <!-- ✅ Offload Summary Table -->
+  <h3>🔁 Offloads Summary (Same / Cross Region)</h3>
+  <table id="offloadSummaryTable">
+    <thead>
+      <tr>
+        <th>Node</th>
+        <th>Total Offloads</th>
+        <th>% Jobs Offloaded</th>
+        <th>Same / Cross Region %</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
   <div class="chart-container"><canvas id="cacheHitsChart"></canvas><a class="reset-link" href="#" onclick="cacheHitsChart.resetZoom()">Reset Zoom</a></div>
   <div class="chart-container"><canvas id="cacheMissesChart"></canvas><a class="reset-link" href="#" onclick="cacheMissesChart.resetZoom()">Reset Zoom</a></div>
+  <h3>🧠 Cache Summary (Per Node)</h3>
+  <table id="cacheSummaryTable">
+    <thead>
+      <tr>
+        <th>Node</th>
+        <th>Total Hits</th>
+        <th>Total Misses</th>
+        <th>Hit Ratio (%)</th>
+        <th>Trend</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
   <div class="chart-container"><canvas id="sameRespChart"></canvas><a class="reset-link" href="#" onclick="sameRespChart.resetZoom()">Reset Zoom</a></div>
   <div class="chart-container"><canvas id="crossRespChart"></canvas><a class="reset-link" href="#" onclick="crossRespChart.resetZoom()">Reset Zoom</a></div>
-
+  <h3>📦 Response Summary (Per Node)</h3>
+  <table id="responseSummaryTable">
+    <thead>
+      <tr>
+        <th>Node</th>
+        <th>Total Responses</th>
+        <th>Same / Cross Region %</th>
+        <th>Resp vs Offload Ratio</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
   <h2>🌐 System-Wide Metrics Over Time</h2>
   <div class="chart-container"><canvas id="sysCpuChart"></canvas><a class="reset-link" href="#" onclick="sysCpuChart.resetZoom()">Reset Zoom</a></div>
+  <h3>🧠 System CPU Summary</h3>
+  <table id="systemCpuSummaryTable">
+    <thead>
+      <tr>
+        <th>Avg CPU %</th>
+        <th>Max CPU %</th>
+        <th>Latest CPU %</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
   <div class="chart-container"><canvas id="sysMemChart"></canvas><a class="reset-link" href="#" onclick="sysMemChart.resetZoom()">Reset Zoom</a></div>
+  <h3>💾 System Memory Summary</h3>
+  <table id="systemMemSummaryTable">
+    <thead>
+      <tr>
+        <th>Avg Mem %</th>
+        <th>Max Mem %</th>
+        <th>Latest Mem %</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
   <div class="chart-container"><canvas id="sysOffloadChart"></canvas><a class="reset-link" href="#" onclick="sysOffloadChart.resetZoom()">Reset Zoom</a></div>
+  <!-- ✅ System Offloads Summary Table -->
+  <h3>📦 System Offloads Summary</h3>
+  <table id="systemOffloadSummaryTable">
+    <thead>
+      <tr>
+        <th>Total Offloads</th>
+        <th>Same / Cross %</th>
+        <th>Trend</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
   <div class="chart-container"><canvas id="sysCacheChart"></canvas><a class="reset-link" href="#" onclick="sysCacheChart.resetZoom()">Reset Zoom</a></div>
+  <h3>💽 System Cache Summary</h3>
+  <table id="systemCacheSummaryTable">
+    <thead>
+      <tr>
+        <th>Total Hits</th>
+        <th>Total Misses</th>
+        <th>Hit Ratio %</th>
+        <th>Trend</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
   <div class="chart-container"><canvas id="sysLocalProcChart"></canvas><a class="reset-link" href="#" onclick="sysLocalProcChart.resetZoom()">Reset Zoom</a></div>
+  <!-- 🟣 System-Wide Local Processing Summary -->
+  <h3>🛠️ System-Wide Local Processing Summary</h3>
+  <table id="sysLocalProcSummaryTable">
+    <thead>
+      <tr>
+        <th>Total Jobs</th>
+        <th>Avg / 5s</th>
+        <th>Max Burst</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
   <div class="chart-container"><canvas id="sysRespChart"></canvas><a class="reset-link" href="#" onclick="sysRespChart.resetZoom()">Reset Zoom</a></div>
-
+  <h3>📦 System-Wide Response Summary</h3>
+  <table id="sysResponseSummaryTable">
+    <thead>
+      <tr>
+        <th>Total Responses</th>
+        <th>Same / Cross Region %</th>
+        <th>Resp vs Offload Ratio</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <h2>📶 Client Metrics (Throughput & Latency)</h2>
+  <div class="chart-container"><canvas id="clientThroughputChart"></canvas><a class="reset-link" href="#" onclick="clientThroughputChart.resetZoom()">Reset Zoom</a></div>
+  <div class="chart-container"><canvas id="clientLatencyChart"></canvas><a class="reset-link" href="#" onclick="clientLatencyChart.resetZoom()">Reset Zoom</a></div>
+  <h3>📊 Client Summary</h3>
+  <table id="clientSummaryTable">
+    <thead>
+      <tr>
+        <th>Max Throughput (%)</th>
+        <th>Latest Throughput (%)</th>
+        <th>Avg Throughput (%)</th>
+        <th>Max Avg Latency (ms)</th>
+        <th>Latest Avg Latency (ms)</th>
+        <th>Success Count</th>
+        <th>Total Requests</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
   <script>
     const MAX_POINTS = 1500;
 
     const perNodeMetrics = {
       cpu: {}, mem: {}, queue: {}, localProc: {},
       offSame: {}, offCross: {}, cacheHits: {}, cacheMisses: {},
-      sameResp: {}, crossResp: {}
+      sameResp: {}, crossResp: {}, throughput: {}, latency: {}
     };
 
     const sysMetrics = {
@@ -132,12 +267,53 @@
       sameResp: [], crossResp: []
     };
 
+    const clientMetricsHistory = {
+      throughput: [],
+      latency: [],
+      successCount: 0,
+      totalCount: 0,
+      timeLabels: [],
+    };
+
     const cpuStats = {}; // Store CPU history for each node
     const memStats = {}; // Store Memory history for each node
     const queueStats = {}; // Store Queue history for each node
     const localProcStats = {};
     const prevLocalProc = {};
+    const offloadSameStats = {};
+    const offloadCrossStats = {};
+    const prevOffloadSame = {};
+    const prevOffloadCross = {};
+    const cacheStats = {};       // nodeId => { hits: [], misses: [] }
+    const prevCache = {};        // nodeId => { hits: prev, misses: prev }
+    const cacheTrend = {};       // nodeId => last ratio
+    const responseSameStats = {};
+    const responseCrossStats = {};
+    const prevResponseSame = {};
+    const prevResponseCross = {};
+    
+    // Health
+    const nodeLastSeen = {}; // nodeId -> timestamp of last metric seen
+    const NODE_TIMEOUT_MS = 15000;  // 15s to consider "down"
+    
+    // system wide stats
+    const sysCpuStats = [];
+    const sysMemStats = [];
+    let prevSysOffloads = { same: 0, cross: 0 };
+    const sysOffloadDeltas = { same: [], cross: [] };
 
+    let prevSysCache = { hits: 0, misses: 0 };
+    const sysCacheDeltas = { hits: [], misses: [] };
+
+    const sysOffloadTrend = [];
+    const sysCacheTrend = [];
+    let sysLocalProcHistory = [];
+    let prevSysLocalProc = 0;
+
+    let sysResponseSameHistory = [];
+    let sysResponseCrossHistory = [];
+    let prevSysResponseSame = 0;
+    let prevSysResponseCross = 0;
 
     async function fetchMetrics() {
       const res = await fetch('/metrics');
@@ -191,6 +367,9 @@
     const sysCacheChart = createLineChart('sysCacheChart', 'Total Cache');
     const sysLocalProcChart = createLineChart('sysLocalProcChart', 'Total Local Processings');
     const sysRespChart = createLineChart('sysRespChart', 'Total Responses');
+
+    const clientThroughputChart = createLineChart('clientThroughputChart', 'Client Throughput (%)');
+    const clientLatencyChart = createLineChart('clientLatencyChart', 'Client Avg Latency (ms)');
 
     function getOrCreateDataset(chart, nodeId, color) {
       let dataset = chart.data.datasets.find(d => d.label === nodeId);
@@ -338,6 +517,453 @@
         });
     }
 
+    function updateOffloadSummaryTable(sameData, crossData) {
+      const tbody = document.querySelector('#offloadSummaryTable tbody');
+      tbody.innerHTML = '';
+
+      Object.keys(sameData).forEach(nodeId => {
+        const sameNow = sameData[nodeId];
+        const crossNow = crossData[nodeId];
+
+        // const prevSame = prevOffloadSame[nodeId] ?? (sameNow > 10 ? sameNow : 0);
+        // const prevCross = prevOffloadCross[nodeId] ?? (crossNow > 10 ? crossNow : 0);
+
+        const prevSame = prevOffloadSame[nodeId] ?? 0;
+        const prevCross = prevOffloadCross[nodeId] ?? 0;
+
+        const deltaSame = Math.max(sameNow - prevSame, 0);
+        const deltaCross = Math.max(crossNow - prevCross, 0);
+
+        prevOffloadSame[nodeId] = sameNow;
+        prevOffloadCross[nodeId] = crossNow;
+
+        if (!offloadSameStats[nodeId]) offloadSameStats[nodeId] = [];
+        if (!offloadCrossStats[nodeId]) offloadCrossStats[nodeId] = [];
+        offloadSameStats[nodeId].push(deltaSame);
+        offloadCrossStats[nodeId].push(deltaCross);
+        if (offloadSameStats[nodeId].length > MAX_POINTS) offloadSameStats[nodeId].shift();
+        if (offloadCrossStats[nodeId].length > MAX_POINTS) offloadCrossStats[nodeId].shift();
+
+        const totalSame = offloadSameStats[nodeId].reduce((a, b) => a + b, 0);
+        const totalCross = offloadCrossStats[nodeId].reduce((a, b) => a + b, 0);
+        const totalOffloads = totalSame + totalCross + 1e-6; // avoid divide-by-zero
+        const totalLocal = localProcStats[nodeId]?.reduce((a, b) => a + b, 0) || 0;
+        const totalJobs = totalLocal + totalOffloads + 1e-6; // avoid divide-by-zero
+        // const totalJobs = totalOffloads + 1e-6;  // avoid divide-by-zero
+        const percentOffloaded = ((totalOffloads / totalJobs) * 100).toFixed(1);
+        const sameRatio = ((totalSame / totalOffloads) * 100).toFixed(1);
+        const crossRatio = ((totalCross / totalOffloads) * 100).toFixed(1);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${nodeId}</td>
+          <td>${Math.round(totalOffloads)}</td>
+          <td>${percentOffloaded}%</td>
+          <td>${sameRatio}% / ${crossRatio}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    
+    function updateCacheSummaryTable(latestHits, latestMisses) {
+      const tbody = document.querySelector('#cacheSummaryTable tbody');
+      tbody.innerHTML = '';
+
+      Object.keys(latestHits).forEach(nodeId => {
+        const currHits = latestHits[nodeId];
+        const currMisses = latestMisses[nodeId];
+
+        // Initialize previous values if missing
+        // if (!prevCache[nodeId]) {
+        //   prevCache[nodeId] = { hits: currHits, misses: currMisses };
+        //   cacheStats[nodeId] = { hits: [], misses: [] };
+        // }
+
+        if (!prevCache[nodeId]) {
+          prevCache[nodeId] = { hits: 0, misses: 0 };  // assume zero at start
+        }
+        if (!cacheStats[nodeId]) {
+          cacheStats[nodeId] = { hits: [], misses: [] };
+        }
+
+        // Calculate deltas
+        const deltaHits = Math.max(currHits - prevCache[nodeId].hits, 0);
+        const deltaMisses = Math.max(currMisses - prevCache[nodeId].misses, 0);
+
+        // Update history
+        cacheStats[nodeId].hits.push(deltaHits);
+        cacheStats[nodeId].misses.push(deltaMisses);
+
+        if (cacheStats[nodeId].hits.length > MAX_POINTS) cacheStats[nodeId].hits.shift();
+        if (cacheStats[nodeId].misses.length > MAX_POINTS) cacheStats[nodeId].misses.shift();
+
+        // Update previous values
+        prevCache[nodeId].hits = currHits;
+        prevCache[nodeId].misses = currMisses;
+
+        // Summary metrics
+        const totalHits = cacheStats[nodeId].hits.reduce((a, b) => a + b, 0);
+        const totalMisses = cacheStats[nodeId].misses.reduce((a, b) => a + b, 0);
+        const hitRatio = totalHits / (totalHits + totalMisses + 1e-6);
+        const hitRatioPct = (hitRatio * 100).toFixed(1);
+
+        const prevRatio = cacheTrend[nodeId] ?? hitRatio;
+        const trend = hitRatio > prevRatio ? '↑' : hitRatio < prevRatio ? '↓' : '→';
+        cacheTrend[nodeId] = hitRatio;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${nodeId}</td>
+          <td>${totalHits}</td>
+          <td>${totalMisses}</td>
+          <td>${hitRatioPct}%</td>
+          <td>${trend}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateResponseSummaryTable(sameData, crossData) {
+      const tbody = document.querySelector('#responseSummaryTable tbody');
+      tbody.innerHTML = '';
+
+      Object.keys(sameData).forEach(nodeId => {
+        const sameNow = sameData[nodeId];
+        const crossNow = crossData[nodeId];
+
+        const prevSame = prevResponseSame[nodeId] ?? 0;
+        const prevCross = prevResponseCross[nodeId] ?? 0;
+
+        const deltaSame = Math.max(sameNow - prevSame, 0);
+        const deltaCross = Math.max(crossNow - prevCross, 0);
+
+        prevResponseSame[nodeId] = sameNow;
+        prevResponseCross[nodeId] = crossNow;
+
+        if (!responseSameStats[nodeId]) responseSameStats[nodeId] = [];
+        if (!responseCrossStats[nodeId]) responseCrossStats[nodeId] = [];
+
+        responseSameStats[nodeId].push(deltaSame);
+        responseCrossStats[nodeId].push(deltaCross);
+
+        if (responseSameStats[nodeId].length > MAX_POINTS) responseSameStats[nodeId].shift();
+        if (responseCrossStats[nodeId].length > MAX_POINTS) responseCrossStats[nodeId].shift();
+
+        const totalSame = responseSameStats[nodeId].reduce((a, b) => a + b, 0);
+        const totalCross = responseCrossStats[nodeId].reduce((a, b) => a + b, 0);
+        const totalResp = totalSame + totalCross + 1e-6;
+
+        const sameRatio = ((totalSame / totalResp) * 100).toFixed(1);
+        const crossRatio = ((totalCross / totalResp) * 100).toFixed(1);
+
+        const totalOffloads = (offloadSameStats[nodeId]?.reduce((a, b) => a + b, 0) || 0)
+                            + (offloadCrossStats[nodeId]?.reduce((a, b) => a + b, 0) || 0);
+        const respOffloadRatio = totalOffloads > 0 ? (totalResp / totalOffloads).toFixed(1) : '—';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${nodeId}</td>
+          <td>${Math.round(totalResp)}</td>
+          <td>${sameRatio}% / ${crossRatio}%</td>
+          <td>${respOffloadRatio}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateSystemCpuSummary() {
+      const tbody = document.querySelector('#systemCpuSummaryTable tbody');
+      tbody.innerHTML = '';
+
+      if (sysMetrics.cpu.length === 0) return;
+
+      const latest = sysMetrics.cpu.at(-1);
+      sysCpuStats.push(latest);
+      if (sysCpuStats.length > MAX_POINTS) sysCpuStats.shift();
+
+      const avg = (sysCpuStats.reduce((a, b) => a + b, 0) / sysCpuStats.length).toFixed(1);
+      const max = Math.max(...sysCpuStats).toFixed(1);
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${avg}%</td>
+        <td>${max}%</td>
+        <td>${latest.toFixed(1)}%</td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function updateSystemMemSummary() {
+      const tbody = document.querySelector('#systemMemSummaryTable tbody');
+      tbody.innerHTML = '';
+
+      if (sysMetrics.mem.length === 0) return;
+
+      const latest = sysMetrics.mem.at(-1);
+      sysMemStats.push(latest);
+      if (sysMemStats.length > MAX_POINTS) sysMemStats.shift();
+
+      const avg = (sysMemStats.reduce((a, b) => a + b, 0) / sysMemStats.length).toFixed(1);
+      const max = Math.max(...sysMemStats).toFixed(1);
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${avg}%</td>
+        <td>${max}%</td>
+        <td>${latest.toFixed(1)}%</td>
+      `;
+      tbody.appendChild(tr);
+    }
+    
+    function updateSystemOffloadSummary() {
+      const tbody = document.querySelector('#systemOffloadSummaryTable tbody');
+      tbody.innerHTML = '';
+
+      const currSame = sysMetrics.offSame.at(-1) || 0;
+      const currCross = sysMetrics.offCross.at(-1) || 0;
+
+      const deltaSame = Math.max(currSame - prevSysOffloads.same, 0);
+      const deltaCross = Math.max(currCross - prevSysOffloads.cross, 0);
+
+      prevSysOffloads.same = currSame;
+      prevSysOffloads.cross = currCross;
+
+      sysOffloadDeltas.same.push(deltaSame);
+      sysOffloadDeltas.cross.push(deltaCross);
+
+      if (sysOffloadDeltas.same.length > MAX_POINTS) sysOffloadDeltas.same.shift();
+      if (sysOffloadDeltas.cross.length > MAX_POINTS) sysOffloadDeltas.cross.shift();
+
+      const totalSame = sysOffloadDeltas.same.reduce((a, b) => a + b, 0);
+      const totalCross = sysOffloadDeltas.cross.reduce((a, b) => a + b, 0);
+      const totalOffloads = totalSame + totalCross;
+
+      const samePct = ((totalSame / (totalOffloads + 1e-6)) * 100).toFixed(1);
+      const crossPct = ((totalCross / (totalOffloads + 1e-6)) * 100).toFixed(1);
+
+      const prev = sysOffloadTrend.at(-1) ?? samePct;
+      const trend = samePct > prev ? '↑' : samePct < prev ? '↓' : '→';
+      sysOffloadTrend.push(Number(samePct));
+      if (sysOffloadTrend.length > MAX_POINTS) sysOffloadTrend.shift();
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${Math.round(totalOffloads)}</td>
+        <td>${samePct}% / ${crossPct}%</td>
+        <td>${trend}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function updateSystemCacheSummary() {
+      const tbody = document.querySelector('#systemCacheSummaryTable tbody');
+      tbody.innerHTML = '';
+
+      const currHits = sysMetrics.cacheHits.at(-1) || 0;
+      const currMisses = sysMetrics.cacheMisses.at(-1) || 0;
+
+      const deltaHits = Math.max(currHits - prevSysCache.hits, 0);
+      const deltaMisses = Math.max(currMisses - prevSysCache.misses, 0);
+
+      prevSysCache.hits = currHits;
+      prevSysCache.misses = currMisses;
+
+      sysCacheDeltas.hits.push(deltaHits);
+      sysCacheDeltas.misses.push(deltaMisses);
+
+      if (sysCacheDeltas.hits.length > MAX_POINTS) sysCacheDeltas.hits.shift();
+      if (sysCacheDeltas.misses.length > MAX_POINTS) sysCacheDeltas.misses.shift();
+
+      const totalHits = sysCacheDeltas.hits.reduce((a, b) => a + b, 0);
+      const totalMisses = sysCacheDeltas.misses.reduce((a, b) => a + b, 0);
+      const ratio = totalHits / (totalHits + totalMisses + 1e-6);
+      const ratioPct = (ratio * 100).toFixed(1);
+
+      const prev = sysCacheTrend.at(-1) ?? ratioPct;
+      const trend = ratioPct > prev ? '↑' : ratioPct < prev ? '↓' : '→';
+      sysCacheTrend.push(Number(ratioPct));
+      if (sysCacheTrend.length > MAX_POINTS) sysCacheTrend.shift();
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${Math.round(totalHits)}</td>
+        <td>${Math.round(totalMisses)}</td>
+        <td>${ratioPct}%</td>
+        <td>${trend}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function updateSysLocalProcSummary(currentValue) {
+      const delta = Math.max(currentValue - prevSysLocalProc, 0);
+      prevSysLocalProc = currentValue;
+
+      sysLocalProcHistory.push(delta);
+      if (sysLocalProcHistory.length > MAX_POINTS) sysLocalProcHistory.shift();
+
+      const total = sysLocalProcHistory.reduce((a, b) => a + b, 0);
+      const avg = (total / sysLocalProcHistory.length).toFixed(1);
+      const max = Math.max(...sysLocalProcHistory);
+
+      const tbody = document.querySelector('#sysLocalProcSummaryTable tbody');
+      tbody.innerHTML = `
+        <tr>
+          <td>${total}</td>
+          <td>${avg}</td>
+          <td>${max}</td>
+        </tr>
+      `;
+    }
+
+    function updateSysResponseSummary(currentSame, currentCross, totalOffloads) {
+      const deltaSame = Math.max(currentSame - prevSysResponseSame, 0);
+      const deltaCross = Math.max(currentCross - prevSysResponseCross, 0);
+      prevSysResponseSame = currentSame;
+      prevSysResponseCross = currentCross;
+
+      sysResponseSameHistory.push(deltaSame);
+      sysResponseCrossHistory.push(deltaCross);
+      if (sysResponseSameHistory.length > MAX_POINTS) sysResponseSameHistory.shift();
+      if (sysResponseCrossHistory.length > MAX_POINTS) sysResponseCrossHistory.shift();
+
+      const totalSame = sysResponseSameHistory.reduce((a, b) => a + b, 0);
+      const totalCross = sysResponseCrossHistory.reduce((a, b) => a + b, 0);
+      const totalResp = totalSame + totalCross + 1e-6;
+
+      const sameRatio = ((totalSame / totalResp) * 100).toFixed(1);
+      const crossRatio = ((totalCross / totalResp) * 100).toFixed(1);
+
+      const respOffloadRatio = totalOffloads > 0
+        ? (totalResp / totalOffloads).toFixed(1)
+        : '—';
+
+      const tbody = document.querySelector('#sysResponseSummaryTable tbody');
+      tbody.innerHTML = `
+        <tr>
+          <td>${Math.round(totalResp)}</td>
+          <td>${sameRatio}% / ${crossRatio}%</td>
+          <td>${respOffloadRatio}</td>
+        </tr>
+      `;
+    }
+    
+    // function updateClientSummaryTable(clientId = 'client') {
+    //   const tbody = document.querySelector('#clientSummaryTable tbody');
+    //   tbody.innerHTML = '';
+
+    //   const tpHistory = perNodeMetrics.throughput?.[clientId] ?? [];
+    //   const latHistory = perNodeMetrics.latency?.[clientId] ?? [];
+
+    //   if (tpHistory.length === 0 || latHistory.length === 0) return;
+
+    //   const maxThroughput = Math.max(...tpHistory.map(p => p.y)).toFixed(1);
+    //   const latestThroughput = tpHistory.at(-1)?.y.toFixed(1) ?? '—';
+
+    //   const maxLatency = Math.max(...latHistory.map(p => p.y)).toFixed(1);
+    //   const latestLatency = latHistory.at(-1)?.y.toFixed(1) ?? '—';
+
+    //   const tr = document.createElement('tr');
+    //   tr.innerHTML = `
+    //     <td>${maxThroughput}</td>
+    //     <td>${latestThroughput}</td>
+    //     <td>${maxLatency}</td>
+    //     <td>${latestLatency}</td>
+    //     <td>${clientMetricsHistory.successCount}</td>
+    //     <td>${clientMetricsHistory.totalCount}</td>
+    //   `;
+    //   tbody.appendChild(tr);
+    // }
+
+    function updateClientSummaryTable(clientId = 'client') {
+      const tbody = document.querySelector('#clientSummaryTable tbody');
+      tbody.innerHTML = '';
+
+      const tpHistory = perNodeMetrics.throughput?.[clientId] ?? [];
+      const latHistory = perNodeMetrics.latency?.[clientId] ?? [];
+
+      if (tpHistory.length === 0 || latHistory.length === 0) return;
+
+      const maxThroughput = Math.max(...tpHistory.map(p => p.y)).toFixed(1);
+      const latestThroughput = tpHistory.at(-1)?.y.toFixed(1) ?? '—';
+      const avgThroughput = (tpHistory.reduce((sum, p) => sum + p.y, 0) / tpHistory.length).toFixed(1);
+
+      const maxLatency = Math.max(...latHistory.map(p => p.y)).toFixed(1);
+      const latestLatency = latHistory.at(-1)?.y.toFixed(1) ?? '—';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${maxThroughput}</td>
+        <td>${latestThroughput}</td>
+        <td>${avgThroughput}</td>
+        <td>${maxLatency}</td>
+        <td>${latestLatency}</td>
+        <td>${clientMetricsHistory.successCount}</td>
+        <td>${clientMetricsHistory.totalCount}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function updateClientMetrics(data, ts, colorMap) {
+      const clientId = 'client';
+
+      const throughput = data.throughput ?? 0;
+      const latency = data.avg_latency ?? 0;
+
+      updatePerNodeChart(clientThroughputChart, { [clientId]: throughput }, 'throughput', ts, colorMap);
+      updatePerNodeChart(clientLatencyChart, { [clientId]: latency }, 'latency', ts, colorMap);
+
+      clientMetricsHistory.successCount = data.success ?? 0;
+      clientMetricsHistory.totalCount = data.total ?? 0;
+
+      updateClientSummaryTable(clientId);
+    }
+    
+    function getNodeHealthStatus(nodeId) {
+      const lastSeen = nodeLastSeen[nodeId] ?? 0;
+      const now = Date.now();
+      const timeSince = now - lastSeen;
+
+      if (timeSince > NODE_TIMEOUT_MS) return "Down";
+
+      const recentPoints = 12;
+
+      const cpuHistory = perNodeMetrics.cpu?.[nodeId] ?? [];
+      const queueHistory = perNodeMetrics.queue?.[nodeId] ?? [];
+
+      // Ensure we have at least `recentPoints` samples before checking
+      if (cpuHistory.length < recentPoints || queueHistory.length < recentPoints) {
+        return "Healthy"; // not enough history to judge
+      }
+
+      const recentCpu = cpuHistory.slice(-recentPoints).map(p => p.y);
+      const recentQueue = queueHistory.slice(-recentPoints).map(p => p.y);
+
+      const cpuLow = recentCpu.every(val => val < 5);
+      const queueZero = recentQueue.every(val => val === 0);
+
+      if (cpuLow && queueZero) return "Idle";
+
+      return "Healthy";
+    }
+
+    function updateNodeHealthTable() {
+      const tbody = document.querySelector('#nodeHealthTable tbody');
+      tbody.innerHTML = '';
+
+      Object.keys(nodeLastSeen).forEach(nodeId => {
+        const status = getNodeHealthStatus(nodeId);
+        const lastSeenStr = new Date(nodeLastSeen[nodeId]).toLocaleTimeString();
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${nodeId}</td>
+          <td>${status}</td>
+          <td>${lastSeenStr}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
     async function updateCharts() {
       const data = await fetchMetrics();
       const ts = new Date();
@@ -360,6 +986,16 @@
         crossResp[id] = data[id].cross_region_responses || 0;
       });
 
+      nodeIds.forEach(id => {
+        nodeLastSeen[id] = Date.now();
+      });
+
+      const clientId = "client";
+      if (nodeIds.includes(clientId)) {
+        const c = data[clientId];
+        updateClientMetrics(c, ts, colorMap);
+      }
+
       updatePerNodeChart(cpuChart, cpu, 'cpu', ts, colorMap);
       updatePerNodeChart(memChart, mem, 'mem', ts, colorMap);
       updatePerNodeChart(queueChart, queue, 'queue', ts, colorMap);
@@ -375,6 +1011,18 @@
       updateMemSummaryTable(mem);
       updateQueueSummaryTable(queue);
       updateLocalProcSummaryTable(localProc);
+      updateOffloadSummaryTable(offSame, offCross);
+      updateCacheSummaryTable(cacheHits, cacheMisses);
+      updateResponseSummaryTable(sameResp, crossResp);
+
+      // system wide table udpates
+      updateSystemCpuSummary();
+      updateSystemMemSummary();
+      updateSystemOffloadSummary();
+      updateSystemCacheSummary();
+      updateSysLocalProcSummary(sum(Object.values(localProc)));
+      const totalOffloadsSys = sum(Object.values(offSame)) + sum(Object.values(offCross));
+      updateSysResponseSummary(sum(Object.values(sameResp)), sum(Object.values(crossResp)), totalOffloadsSys);
 
       sysMetrics.timeLabels.push(ts);
       sysMetrics.cpu.push(sum(Object.values(cpu)));
@@ -400,6 +1048,8 @@
       updateSystemChart(sysLocalProcChart, 'Total Local Proc', sysMetrics.localProc, 'purple');
       updateSystemChart(sysRespChart, 'Same-Region', sysMetrics.sameResp, 'blue', 0);
       updateSystemChart(sysRespChart, 'Cross-Region', sysMetrics.crossResp, 'red', 1);
+
+      updateNodeHealthTable();
     }
 
     setInterval(updateCharts, 5000);
