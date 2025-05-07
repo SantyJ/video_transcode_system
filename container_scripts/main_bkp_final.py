@@ -73,6 +73,9 @@ def push_metrics_to_central(metrics):
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...), request: Request = None):
+    import time, hashlib, io, asyncio
+    from fastapi.responses import StreamingResponse
+
     content = await file.read()
 
     if not file.content_type.startswith("video/"):
@@ -81,6 +84,7 @@ async def upload(file: UploadFile = File(...), request: Request = None):
     content_hash = hashlib.sha256(content).hexdigest()
     origin_zone = request.headers.get("x-origin-zone") or os.getenv("NODE_ZONE")
     request_start = float(request.headers.get("x-start-time", time.time()))
+    simulated_rtt_accumulated = float(request.headers.get("x-simulated-rtt", "0"))
     curr_zone = os.getenv("NODE_ZONE")
 
     # Check cache first
@@ -92,7 +96,7 @@ async def upload(file: UploadFile = File(...), request: Request = None):
             observability.remote_response(os.getenv("NODE_NAME"))
         observability.cache_hit()
         observability.local_processing()
-        latency_ms = (time.time() - request_start) * 1000
+        latency_ms = (time.time() - request_start) * 1000 + simulated_rtt_accumulated
         response = StreamingResponse(io.BytesIO(cache[content_hash]), media_type="video/mp4")
         response.headers['X-Processing-Latency'] = str(round(latency_ms, 2))
         return response
@@ -101,11 +105,17 @@ async def upload(file: UploadFile = File(...), request: Request = None):
     best_peer, best_peer_zone = get_best_peer()
     if best_peer and best_peer != "self":
         try:
+            # Add simulated RTT to accumulated total
+            simulated_rtt = ZONE_RTT.get((curr_zone, best_peer_zone), 0)
+            await asyncio.sleep(simulated_rtt / 1000.0)
+            simulated_rtt_accumulated += simulated_rtt
+
             async with httpx.AsyncClient(timeout=10.0) as client:
                 files = {"file": (file.filename, content, file.content_type)}
                 headers = {
                     "x-origin-zone": origin_zone,
-                    "x-start-time": str(request_start)
+                    "x-start-time": str(request_start),
+                    "x-simulated-rtt": str(simulated_rtt_accumulated)
                 }
                 r = await client.post(f"http://{best_peer}/upload", files=files, headers=headers)
 
@@ -120,11 +130,8 @@ async def upload(file: UploadFile = File(...), request: Request = None):
                 transcoded_data = r.content
                 cache[content_hash] = transcoded_data
 
-                # Add simulated RTT if peer is in different zone
-                simulated_rtt = ZONE_RTT.get(curr_zone, {}).get(best_peer_zone, 0)
                 peer_latency = float(r.headers.get("X-Processing-Latency", "0"))
                 total_latency = peer_latency + simulated_rtt
-
                 response = StreamingResponse(io.BytesIO(transcoded_data), media_type="video/mp4")
                 response.headers['X-Processing-Latency'] = str(round(total_latency, 2))
                 return response
@@ -147,7 +154,7 @@ async def upload(file: UploadFile = File(...), request: Request = None):
         observability.local_processing()
         observability.cache_miss()
 
-        latency_ms = (time.time() - request_start) * 1000
+        latency_ms = (time.time() - request_start) * 1000 + simulated_rtt_accumulated
         response = StreamingResponse(io.BytesIO(transcoded_data), media_type="video/mp4")
         response.headers['X-Processing-Latency'] = str(round(latency_ms, 2))
         return response
@@ -156,9 +163,6 @@ async def upload(file: UploadFile = File(...), request: Request = None):
         print(f"[Local] Failed to process locally: {e}")
         observability.failed_request()
         return {"error": "Failed to process video."}
-# def simulate_job(data):
-#     time.sleep(2)
-#     return f"Processed {len(data)} bytes"
 
 async def transcode(data: bytes) -> bytes:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as input_tmp:

@@ -17,12 +17,42 @@ from zone_config import ZONE_RTT
 
 app = FastAPI()
 
-job_queue = []
+# job_queue = []
+
+# Shared queue and number of workers
+MAX_QUEUE_SIZE = 20
+job_queue = asyncio.Queue(MAX_QUEUE_SIZE)
+NUM_WORKERS = 5
+
 # cache: Dict[str, Dict] = {}
 # Create an LRU Cache for transcoded videos (example: 100 entries)
 cache = LRUCache(maxsize=100)
 peer_status = {}
 peer_list = []
+
+async def worker(worker_id):
+    print(f"worker: {worker_id}")
+    while True:
+        (job, future) = await job_queue.get()
+        try:
+            content_hash, content = job
+            transcoded_data = await transcode(content)
+            future.set_result(transcoded_data)
+        except Exception as e:
+            future.set_exception(e)
+        finally:
+            job_queue.task_done()
+
+# Start workers at startup
+def start_worker_pool():
+    print("In Start worker pool func")
+    for i in range(NUM_WORKERS):
+        asyncio.create_task(worker(i))
+
+# @app.on_event("startup")
+# async def on_startup():
+#     print("Calling Start worker pool func")
+#     start_worker_pool()
 
 @app.get("/")
 def root():
@@ -33,7 +63,7 @@ def health():
     return {
         "cpu": psutil.cpu_percent(),
         "memory": psutil.virtual_memory().percent,   # NEW
-        "queue_length": len(job_queue)
+        "queue_length": job_queue.qsize()
     }
 
 # @app.get("/peers")
@@ -73,11 +103,7 @@ def push_metrics_to_central(metrics):
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...), request: Request = None):
-    import time, hashlib, io, asyncio
-    from fastapi.responses import StreamingResponse
-
     content = await file.read()
-
     if not file.content_type.startswith("video/"):
         return {"error": "Only video files are supported."}
 
@@ -87,15 +113,14 @@ async def upload(file: UploadFile = File(...), request: Request = None):
     simulated_rtt_accumulated = float(request.headers.get("x-simulated-rtt", "0"))
     curr_zone = os.getenv("NODE_ZONE")
 
-    # Check cache first
+    # Cache check
     if content_hash in cache:
-        print(f"[Cache] Cache hit for {content_hash}")
+        observability.cache_hit()
+        observability.local_processing()
         if origin_zone == curr_zone:
             observability.local_response(os.getenv("NODE_NAME"))
         else:
             observability.remote_response(os.getenv("NODE_NAME"))
-        observability.cache_hit()
-        observability.local_processing()
         latency_ms = (time.time() - request_start) * 1000 + simulated_rtt_accumulated
         response = StreamingResponse(io.BytesIO(cache[content_hash]), media_type="video/mp4")
         response.headers['X-Processing-Latency'] = str(round(latency_ms, 2))
@@ -105,7 +130,6 @@ async def upload(file: UploadFile = File(...), request: Request = None):
     best_peer, best_peer_zone = get_best_peer()
     if best_peer and best_peer != "self":
         try:
-            # Add simulated RTT to accumulated total
             simulated_rtt = ZONE_RTT.get((curr_zone, best_peer_zone), 0)
             await asyncio.sleep(simulated_rtt / 1000.0)
             simulated_rtt_accumulated += simulated_rtt
@@ -119,6 +143,8 @@ async def upload(file: UploadFile = File(...), request: Request = None):
                 }
                 r = await client.post(f"http://{best_peer}/upload", files=files, headers=headers)
 
+                transcoded_data = r.content
+                cache[content_hash] = transcoded_data
                 if curr_zone == best_peer_zone:
                     print(f"[Same-Region Offload] Successfully offloaded to {best_peer}")
                     observability.offload_success_local(best_peer)
@@ -126,9 +152,6 @@ async def upload(file: UploadFile = File(...), request: Request = None):
                     print(f"[Cross-Region Offload] Successfully offloaded to {best_peer} | {curr_zone} -> {best_peer_zone}")
                     observability.offload_success_remote(best_peer)
                 observability.offload_success(best_peer)
-
-                transcoded_data = r.content
-                cache[content_hash] = transcoded_data
 
                 peer_latency = float(r.headers.get("X-Processing-Latency", "0"))
                 total_latency = peer_latency + simulated_rtt
@@ -138,30 +161,33 @@ async def upload(file: UploadFile = File(...), request: Request = None):
         except Exception as e:
             print(f"[Offload] Failed to offload to {best_peer}: {e}")
 
-    # Local processing fallback
+    # Local processing via worker pool
     try:
-        job_queue.append(content_hash)
-        start_local = time.time()
-        transcoded_data = await transcode(content)
-        job_queue.remove(content_hash)
-        cache[content_hash] = transcoded_data
-        print(f"[Local] Processed video locally: {content_hash}")
+        loop = asyncio.get_event_loop()
+        response_future = loop.create_future()
+        await job_queue.put(((content_hash, content), response_future))
 
+        transcoded_data = await response_future
+        cache[content_hash] = transcoded_data
+        observability.local_processing()
+        observability.cache_miss()
         if origin_zone == curr_zone:
             observability.local_response(os.getenv("NODE_NAME"))
         else:
             observability.remote_response(os.getenv("NODE_NAME"))
-        observability.local_processing()
-        observability.cache_miss()
 
         latency_ms = (time.time() - request_start) * 1000 + simulated_rtt_accumulated
         response = StreamingResponse(io.BytesIO(transcoded_data), media_type="video/mp4")
         response.headers['X-Processing-Latency'] = str(round(latency_ms, 2))
         return response
 
-    except Exception as e:
-        print(f"[Local] Failed to process locally: {e}")
+    except asyncio.QueueFull:
         observability.failed_request()
+        return {"error": "Server is too busy. Please try again later."}
+
+    except Exception as e:
+        observability.failed_request()
+        print(f"[Local] Failed to process locally: {e}")
         return {"error": "Failed to process video."}
 
 async def transcode(data: bytes) -> bytes:
@@ -249,7 +275,16 @@ def get_best_peer():
         # )
 
         load_score = stats["cpu"] + stats["queue"] + stats["memory"]
-        score = (0.5 * rtt) + (0.5 * load_score)
+        # score = (0.5 * rtt) + (0.5 * load_score)
+
+        min_rtt = 10
+        max_rtt = 250
+
+        normalized_rtt = (rtt - min_rtt) / (max_rtt - min_rtt)  # Scale to 0-1
+        max_load = 200 + MAX_QUEUE_SIZE
+        normalized_load = load_score / max_load  # If max load is 300
+        
+        score = 0.3 * normalized_load + 0.7 * normalized_rtt
 
         if score < best_score:
             best_score = score
@@ -261,7 +296,7 @@ def get_best_peer():
 async def monitor_self():
     global peer_status
     cpu = psutil.cpu_percent()
-    queue = len(job_queue)
+    queue = job_queue.qsize()
     memory = psutil.virtual_memory().percent
     peer_status["self"] = {
         "cpu": cpu,
@@ -406,7 +441,7 @@ async def periodic_metrics_push():
                 "node_region": os.getenv("NODE_ZONE", "unknown_region"),
                 "cpu_load": psutil.cpu_percent(),
                 "memory_usage": round((mem_info.rss / psutil.virtual_memory().total) * 100, 2),
-                "queue_length": len(job_queue),
+                "queue_length": job_queue.qsize(),
                 "cache_hits": observability.cache_hits,
                 "cache_misses": observability.cache_misses,
                 "offloads_total": observability.offloads,
@@ -481,6 +516,9 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(safe_background_task("poll_peers", poll_peers))
         asyncio.create_task(safe_background_task("periodic_summary", periodic_summary))
         asyncio.create_task(safe_background_task("periodic_metrics_push", periodic_metrics_push))
+
+        print("Calling Start worker pool func")
+        start_worker_pool()
         
         print("[Lifespan] Background tasks launched")
 

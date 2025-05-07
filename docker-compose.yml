@@ -81,7 +81,7 @@ services:
     environment:
       - TARGET_NODES=node1,node2,node3,node4,node5
       - UPLOAD_FILE=tokyo_night.mp4
-      - CONCURRENCY=100
+      - CONCURRENCY=200
   
   central_server:
     build:

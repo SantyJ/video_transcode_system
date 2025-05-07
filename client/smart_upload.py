@@ -5,6 +5,12 @@ FILE = os.getenv("UPLOAD_FILE", "test.mp4")  # Must be a video file
 CONCURRENCY = int(os.getenv("CONCURRENCY", 20))
 PUSH_INTERVAL = 5  # seconds
 
+VIDEO_DIR = os.getenv("VIDEO_DIR", "./videos")
+
+def get_video_files():
+    return [os.path.join(VIDEO_DIR, f) for f in os.listdir(VIDEO_DIR)
+            if f.lower().endswith((".mp4", ".mov", ".avi", ".mkv"))]
+
 # Metrics (shared across threads)
 success_count = 0
 total_count = 0
@@ -53,7 +59,8 @@ def upload_task(i):
         url = f"http://{node}:5000/upload"
 
         try:
-            with open(FILE, 'rb') as f:
+            video_file = random.choice(get_video_files())
+            with open(video_file, 'rb') as f:
                 files = {"file": (os.path.basename(FILE), f, "video/mp4")}
                 start = time.time()
                 r = requests.post(url, files=files, timeout=15)
@@ -66,13 +73,14 @@ def upload_task(i):
 
                     server_latency = float(r.headers.get("X-Processing-Latency", "0"))
                     total_latency = server_latency + rtt
-                    # total_latency = rtt
+                    # network_rtt = rtt - server_latency
+                    # total_latency = server_latency + network_rtt
 
                     with metrics_lock:
                         success_count += 1
                         total_count += 1
                         latency_list.append(total_latency)
-                    print(f"[{i}] Uploaded to {url} | total count: {total_count} | success: {success_count} | Latency: {round(total_latency,2)} ms")
+                    print(f"[{i}] Uploaded {os.path.basename(video_file)} to {url} | total count: {total_count} | success: {success_count} | server latency: {round(server_latency,2)} ms | Latency: {round(total_latency,2)} ms")
                     success = True
                 else:
                     with metrics_lock:
