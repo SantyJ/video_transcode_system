@@ -2,7 +2,7 @@
 FROM python:3.12-slim
 
 # Install dependencies
-RUN apt-get update && apt-get install -y ffmpeg curl iputils-ping netcat-openbsd wget && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ffmpeg curl iputils-ping netcat-openbsd wget procps docker.io psmisc bc && rm -rf /var/lib/apt/lists/*
 
 # Set working directory in container
 WORKDIR /app

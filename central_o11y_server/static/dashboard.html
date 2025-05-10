@@ -46,7 +46,7 @@
   <h1>🚀 System Metrics Dashboard</h1>
 
   <h2>📊 Per-Node Metrics Over Time</h2>
-  <h3>🩺 Node Health Status</h3>
+  <!-- <h3>🩺 Node Health Status</h3>
   <table id="nodeHealthTable">
     <thead>
       <tr>
@@ -56,7 +56,7 @@
       </tr>
     </thead>
     <tbody></tbody>
-  </table>
+  </table> -->
   <div class="chart-container"><canvas id="cpuChart"></canvas><a class="reset-link" href="#" onclick="cpuChart.resetZoom()">Reset Zoom</a></div>
     <!-- ✅ CPU Summary Table -->
     <h3>🧮 CPU Summary (Per Node)</h3>
@@ -87,7 +87,7 @@
     </table>
   <div class="chart-container"><canvas id="queueChart"></canvas><a class="reset-link" href="#" onclick="queueChart.resetZoom()">Reset Zoom</a></div>
     <!-- ✅ Queue Length Summary Table -->
-    <h3>📦 Queue Length Summary (Per Node)</h3>
+    <h3>📦 Queue Summary (Per Node)</h3>
     <table id="queueSummaryTable">
         <thead>
         <tr>
@@ -95,6 +95,11 @@
             <th>Avg Queue</th>
             <th>Max Queue</th>
             <th>Latest Queue</th>
+            <th>Enqueue Per Sec</th>
+            <th>Dequeue Per Sec</th>
+            <th>Enqueue Per Min</th>
+            <th>Dequeue Per Min</th>
+            <th>Queue Growth Per Min</th>
         </tr>
         </thead>
         <tbody></tbody>
@@ -315,9 +320,18 @@
     let prevSysResponseSame = 0;
     let prevSysResponseCross = 0;
 
+    // async function fetchMetrics() {
+    //   const res = await fetch('/metrics');
+    //   return res.json();
+    // }
+
     async function fetchMetrics() {
-      const res = await fetch('/metrics');
-      return res.json();
+      const [appRes, sysRes] = await Promise.all([
+        fetch('/metrics'),
+        fetch('/system_metrics')
+      ]);
+      const [appMetrics, systemMetrics] = await Promise.all([appRes.json(), sysRes.json()]);
+      return { appMetrics, systemMetrics };
     }
 
     const createLineChart = (id, title) =>
@@ -393,6 +407,35 @@
       chart.update();
     }
 
+    // function updatePerNodeChart(chart, dataMap, label, ts, colorMap) {
+    //   const existingDatasets = new Set(chart.data.datasets.map(d => d.label));
+
+    //   // Add new datasets if missing
+    //   for (const nodeId of Object.keys(dataMap)) {
+    //     if (!existingDatasets.has(nodeId)) {
+    //       chart.data.datasets.push({
+    //         label: nodeId,
+    //         borderColor: colorMap[nodeId] || 'gray',
+    //         data: [],
+    //         tension: 0.2,
+    //         spanGaps: true
+    //       });
+    //     }
+    //   }
+
+    //   // Append data for this timestamp
+    //   chart.data.labels.push(ts);
+    //   if (chart.data.labels.length > MAX_POINTS) chart.data.labels.shift();
+
+    //   chart.data.datasets.forEach(dataset => {
+    //     const value = dataMap[dataset.label] ?? 0;
+    //     dataset.data.push(value);
+    //     if (dataset.data.length > MAX_POINTS) dataset.data.shift();
+    //   });
+
+    //   chart.update();
+    // }
+
     function sum(values) {
       return values.reduce((a, b) => a + b, 0);
     }
@@ -460,28 +503,63 @@
       });
     }
 
-    function updateQueueSummaryTable(latestQueueData) {
-        const tbody = document.querySelector('#queueSummaryTable tbody');
-        tbody.innerHTML = '';
+    // function updateQueueSummaryTable(latestQueueData) {
+    //     const tbody = document.querySelector('#queueSummaryTable tbody');
+    //     tbody.innerHTML = '';
 
-        Object.entries(latestQueueData).forEach(([nodeId, latestValue]) => {
-            if (!queueStats[nodeId]) queueStats[nodeId] = [];
-            const history = queueStats[nodeId];
-            history.push(latestValue);
-            if (history.length > MAX_POINTS) history.shift();
+    //     Object.entries(latestQueueData).forEach(([nodeId, latestValue]) => {
+    //         if (!queueStats[nodeId]) queueStats[nodeId] = [];
+    //         const history = queueStats[nodeId];
+    //         history.push(latestValue);
+    //         if (history.length > MAX_POINTS) history.shift();
 
-            const avg = (history.reduce((a, b) => a + b, 0) / history.length).toFixed(1);
-            const max = Math.max(...history).toFixed(1);
+    //         const avg = (history.reduce((a, b) => a + b, 0) / history.length).toFixed(1);
+    //         const max = Math.max(...history).toFixed(1);
 
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-            <td>${nodeId}</td>
-            <td>${avg}</td>
-            <td>${max}</td>
-            <td>${latestValue}</td>
-            `;
-            tbody.appendChild(tr);
-        });
+    //         const tr = document.createElement('tr');
+    //         tr.innerHTML = `
+    //         <td>${nodeId}</td>
+    //         <td>${avg}</td>
+    //         <td>${max}</td>
+    //         <td>${latestValue}</td>
+    //         `;
+    //         tbody.appendChild(tr);
+    //     });
+    // }
+
+    function updateQueueSummaryTable(latestQueueData, data) {
+      const tbody = document.querySelector('#queueSummaryTable tbody');
+      tbody.innerHTML = '';
+
+      Object.entries(latestQueueData).forEach(([nodeId, latestValue]) => {
+        if (!queueStats[nodeId]) queueStats[nodeId] = [];
+        const history = queueStats[nodeId];
+        history.push(latestValue);
+        if (history.length > MAX_POINTS) history.shift();
+
+        const avg = (history.reduce((a, b) => a + b, 0) / history.length).toFixed(1);
+        const max = Math.max(...history).toFixed(1);
+
+        const enqueueRate = data[nodeId]?.enqueue_rate?.toFixed(2) ?? '—';
+        const dequeueRate = data[nodeId]?.dequeue_rate?.toFixed(2) ?? '—';
+        const enqueueMinRate = data[nodeId]?.enqueue_count_per_min?.toFixed(2) ?? '—';
+        const dequeueMinRate = data[nodeId]?.dequeue_count_per_min?.toFixed(2) ?? '—';
+        const queueGrowth = data[nodeId]?.queue_growth ?? '—';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${nodeId}</td>
+          <td>${avg}</td>
+          <td>${max}</td>
+          <td>${latestValue}</td>
+          <td>${enqueueRate}</td>
+          <td>${dequeueRate}</td>
+          <td>${enqueueMinRate}</td>
+          <td>${dequeueMinRate}</td>
+          <td>${queueGrowth}</td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
 
     function updateLocalProcSummaryTable(latestProcData) {
@@ -551,8 +629,11 @@
         const totalJobs = totalLocal + totalOffloads + 1e-6; // avoid divide-by-zero
         // const totalJobs = totalOffloads + 1e-6;  // avoid divide-by-zero
         const percentOffloaded = ((totalOffloads / totalJobs) * 100).toFixed(1);
-        const sameRatio = ((totalSame / totalOffloads) * 100).toFixed(1);
-        const crossRatio = ((totalCross / totalOffloads) * 100).toFixed(1);
+        // const sameRatio = ((totalSame / totalOffloads) * 100).toFixed(1);
+        // const crossRatio = ((totalCross / totalOffloads) * 100).toFixed(1);
+        
+        const sameRatio = ((totalSame / (totalOffloads + 1e-6)) * 100).toFixed(1);
+        const crossRatio = ((totalCross / (totalOffloads + 1e-6)) * 100).toFixed(1);
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -919,20 +1000,21 @@
     }
     
     function getNodeHealthStatus(nodeId) {
-      const lastSeen = nodeLastSeen[nodeId] ?? 0;
-      const now = Date.now();
-      const timeSince = now - lastSeen;
+      const cpu = sysCpu[nodeId] ?? 0;
+      const mem = sysMem[nodeId] ?? 0;
 
-      if (timeSince > NODE_TIMEOUT_MS) return "Down";
-
-      const recentPoints = 12; // 5 secs * 12
-
+      const recentPoints = 12; // 5 sec * 12 = 1 min
       const cpuHistory = perNodeMetrics.cpu?.[nodeId] ?? [];
       const queueHistory = perNodeMetrics.queue?.[nodeId] ?? [];
 
-      // Ensure we have at least `recentPoints` samples before checking
+      // If both CPU and memory are zero now → likely down
+      if (cpu === 0 && mem === 0) {
+        return "Down";
+      }
+
+      // Not enough history yet
       if (cpuHistory.length < recentPoints || queueHistory.length < recentPoints) {
-        return "Healthy"; // not enough history to judge
+        return "Healthy";
       }
 
       const recentCpu = cpuHistory.slice(-recentPoints).map(p => p.y);
@@ -965,18 +1047,33 @@
     }
 
     async function updateCharts() {
-      const data = await fetchMetrics();
+      // const data = await fetchMetrics();
+      const { appMetrics: data, systemMetrics } = await fetchMetrics();
       const ts = new Date();
-      const nodeIds = Object.keys(data);
-      const colorPalette = ['orange', 'green', 'blue', 'red', 'purple', 'teal', 'pink', 'brown'];
-      const colorMap = Object.fromEntries(nodeIds.map((id, i) => [id, colorPalette[i % colorPalette.length]]));
 
-      const cpu = {}, mem = {}, queue = {}, localProc = {}, offSame = {}, offCross = {}, cacheHits = {}, cacheMisses = {}, sameResp = {}, crossResp = {};
+      // const nodeIds = Object.keys(data);
+      // const colorPalette = ['orange', 'green', 'blue', 'red', 'purple', 'teal', 'pink', 'brown'];
+      // const colorMap = Object.fromEntries(nodeIds.map((id, i) => [id, colorPalette[i % colorPalette.length]]));
+
+      const nodeIds = Object.keys(data);
+      const nodeIdsSys = Object.keys(systemMetrics);
+      const allNodeIds = [...new Set([...nodeIds, ...nodeIdsSys])];
+
+      const colorMap = {};
+      allNodeIds.forEach((id, index) => {
+        const hue = (index * 60) % 360;  // spread out hues
+        colorMap[id] = `hsl(${hue}, 70%, 50%)`;  // vibrant, readable colors
+      });
+
+      const cpu = {}, mem = {}, queue = {}, enqueue = {}, dequeue = {}, qgrowth = {}, localProc = {}, offSame = {}, offCross = {}, cacheHits = {}, cacheMisses = {}, sameResp = {}, crossResp = {};
 
       nodeIds.forEach(id => {
         cpu[id] = data[id].cpu_load || 0;
         mem[id] = data[id].memory_usage || 0;
         queue[id] = data[id].queue_length || 0;
+        enqueue[id] = data[id].enqueue_rate || 0;
+        dequeue[id] = data[id].dequeue_rate || 0;
+        qgrowth[id] = data[id].queue_growth || 0;
         localProc[id] = data[id].local_processings || 0;
         offSame[id] = data[id].offloads_same_region || 0;
         offCross[id] = data[id].offloads_cross_region || 0;
@@ -986,18 +1083,84 @@
         crossResp[id] = data[id].cross_region_responses || 0;
       });
 
-      nodeIds.forEach(id => {
-        nodeLastSeen[id] = Date.now();
-      });
-
       const clientId = "client";
       if (nodeIds.includes(clientId)) {
         const c = data[clientId];
         updateClientMetrics(c, ts, colorMap);
       }
 
-      updatePerNodeChart(cpuChart, cpu, 'cpu', ts, colorMap);
-      updatePerNodeChart(memChart, mem, 'mem', ts, colorMap);
+      // const sysCpu = {};
+      // const sysMem = {};
+
+      // for (const [nodeId, metrics] of Object.entries(systemMetrics)) {
+      //   const cpu = metrics.cpu_percent ?? 0;
+      //   const mem = metrics.memory_percent ?? 0;
+
+      //   sysCpu[nodeId] = cpu;
+      //   sysMem[nodeId] = mem;
+
+      //   // Track historical per-node CPU and Mem
+      //   if (!cpuStats[nodeId]) cpuStats[nodeId] = [];
+      //   if (!memStats[nodeId]) memStats[nodeId] = [];
+      //   cpuStats[nodeId].push(cpu);
+      //   memStats[nodeId].push(mem);
+
+      //   if (cpuStats[nodeId].length > MAX_POINTS) cpuStats[nodeId].shift();
+      //   if (memStats[nodeId].length > MAX_POINTS) memStats[nodeId].shift();
+      // }
+
+      const sysCpu = {};
+      const sysMem = {};
+
+      const currentTime = new Date().toISOString();
+      const activeNodes = new Set(Object.keys(systemMetrics));
+      const allKnownNodes = new Set([
+        ...Object.keys(cpuStats),
+        ...Object.keys(systemMetrics)
+      ]);
+
+      // 1. Update active nodes
+      for (const nodeId of allKnownNodes) {
+        const metrics = systemMetrics[nodeId];
+        const cpu = metrics?.cpu_percent ?? 0;
+        const mem = metrics?.memory_percent ?? 0;
+
+        sysCpu[nodeId] = cpu;
+        sysMem[nodeId] = mem;
+
+        if (!cpuStats[nodeId]) cpuStats[nodeId] = [];
+        if (!memStats[nodeId]) memStats[nodeId] = [];
+        cpuStats[nodeId].push(cpu);
+        memStats[nodeId].push(mem);
+
+        if (cpuStats[nodeId].length > MAX_POINTS) cpuStats[nodeId].shift();
+        if (memStats[nodeId].length > MAX_POINTS) memStats[nodeId].shift();
+
+        // Only update last seen if non-zero
+        if (cpu > 0 || mem > 0) {
+          nodeLastSeen[nodeId] = Date.now();
+        }
+      }
+      
+      // nodeIds.forEach(id => {
+      //   nodeLastSeen[id] = Date.now();
+      // });
+
+      // // 2. Inject 0 for inactive nodes (not reporting this round)
+      // for (const nodeId of allKnownNodes) {
+      //   if (!activeNodes.has(nodeId)) {
+      //     if (!cpuStats[nodeId]) cpuStats[nodeId] = [];
+      //     if (!memStats[nodeId]) memStats[nodeId] = [];
+      //     cpuStats[nodeId].push(0);
+      //     memStats[nodeId].push(0);
+
+      //     if (cpuStats[nodeId].length > MAX_POINTS) cpuStats[nodeId].shift();
+      //     if (memStats[nodeId].length > MAX_POINTS) memStats[nodeId].shift();
+      //   }
+      // }
+
+      updatePerNodeChart(cpuChart, sysCpu, 'cpu', ts, colorMap);
+      updatePerNodeChart(memChart, sysMem, 'mem', ts, colorMap);
       updatePerNodeChart(queueChart, queue, 'queue', ts, colorMap);
       updatePerNodeChart(localProcChart, localProc, 'localProc', ts, colorMap);
       updatePerNodeChart(offloadSameChart, offSame, 'offSame', ts, colorMap);
@@ -1007,9 +1170,9 @@
       updatePerNodeChart(sameRespChart, sameResp, 'sameResp', ts, colorMap);
       updatePerNodeChart(crossRespChart, crossResp, 'crossResp', ts, colorMap);
 
-      updateCpuSummaryTable(cpu);
-      updateMemSummaryTable(mem);
-      updateQueueSummaryTable(queue);
+      updateCpuSummaryTable(sysCpu);
+      updateMemSummaryTable(sysMem);
+      updateQueueSummaryTable(queue, data);
       updateLocalProcSummaryTable(localProc);
       updateOffloadSummaryTable(offSame, offCross);
       updateCacheSummaryTable(cacheHits, cacheMisses);
@@ -1025,8 +1188,8 @@
       updateSysResponseSummary(sum(Object.values(sameResp)), sum(Object.values(crossResp)), totalOffloadsSys);
 
       sysMetrics.timeLabels.push(ts);
-      sysMetrics.cpu.push(sum(Object.values(cpu)));
-      sysMetrics.mem.push(sum(Object.values(mem)));
+      sysMetrics.cpu.push(sum(Object.values(sysCpu)));
+      sysMetrics.mem.push(sum(Object.values(sysMem)));
       sysMetrics.offSame.push(sum(Object.values(offSame)));
       sysMetrics.offCross.push(sum(Object.values(offCross)));
       sysMetrics.cacheHits.push(sum(Object.values(cacheHits)));
@@ -1049,7 +1212,7 @@
       updateSystemChart(sysRespChart, 'Same-Region', sysMetrics.sameResp, 'blue', 0);
       updateSystemChart(sysRespChart, 'Cross-Region', sysMetrics.crossResp, 'red', 1);
 
-      updateNodeHealthTable();
+      // updateNodeHealthTable();
     }
 
     setInterval(updateCharts, 5000);

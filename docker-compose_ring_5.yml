@@ -1,0 +1,123 @@
+services:
+  node1:
+    build: .
+    ports:
+      - "5001:5000"
+    environment:
+      - NODE_NAME=node1
+      - NODE_ZONE=FRA
+      - SEED_NODES=node2
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  node2:
+    build: .
+    ports:
+      - "5002:5000"
+    environment:
+      - NODE_NAME=node2
+      - NODE_ZONE=IAD
+      - SEED_NODES=node3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  node3:
+    build: .
+    ports:
+      - "5003:5000"
+    environment:
+      - NODE_NAME=node3
+      - NODE_ZONE=BOM
+      - SEED_NODES=node4
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  node4:
+    build: .
+    ports:
+      - "5004:5000"
+    environment:
+      - NODE_NAME=node4
+      - NODE_ZONE=FRA
+      - SEED_NODES=node5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  node5:
+    build: .
+    ports:
+      - "5005:5000"
+    environment:
+      - NODE_NAME=node5
+      - NODE_ZONE=IAD
+      - SEED_NODES=node1
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  
+  client:
+    build:
+      context: ./client
+    depends_on:
+      - node1
+      - node2
+      - node3
+      - node4
+      - node5
+    environment:
+      - TARGET_NODES=node1,node2,node3,node4,node5
+      - UPLOAD_FILE=tokyo_night.mp4
+      - CONCURRENCY=100
+      - VIDEO_DIRS=videos,10_50MB,10_50MB_v2
+      # - VIDEO_DIRS=50_100MB
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+  
+  central_server:
+    build:
+      context: ./central_o11y_server    # new folder where you place central_server.py
+    ports:
+      - "8005:8005"
+    networks:
+      - default
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: always
+  
+  resource_monitor:
+    build:
+      context: ./monitor  # folder with Dockerfile + monitor.py
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - node1
+      - node2
+      - node3
+      - node4
+      - node5
+      - central_server
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

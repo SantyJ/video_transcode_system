@@ -1,70 +1,97 @@
-import requests, threading, os, random, time, uuid
+import requests, threading, os, random, time, subprocess
 
-NODES = os.getenv("TARGET_NODES", "").split(",")
-FILE = os.getenv("UPLOAD_FILE", "test.mp4")  # Must be a video file
+# Environment variables
+all_nodes = [node.strip() for node in os.getenv("TARGET_NODES", "").split(",") if node.strip()]
+# FILE = os.getenv("UPLOAD_FILE", "test.mp4")
 CONCURRENCY = int(os.getenv("CONCURRENCY", 20))
 PUSH_INTERVAL = 5  # seconds
+VIDEO_DIRS = os.getenv("VIDEO_DIRS", "./videos").split(",")
 
-VIDEO_DIR = os.getenv("VIDEO_DIR", "./videos")
-
-def get_video_files():
-    return [os.path.join(VIDEO_DIR, f) for f in os.listdir(VIDEO_DIR)
-            if f.lower().endswith((".mp4", ".mov", ".avi", ".mkv"))]
-
-# Metrics (shared across threads)
+# Shared state
+healthy_nodes = set()
 success_count = 0
 total_count = 0
 latency_list = []
 metrics_lock = threading.Lock()
 
-def wait_until_available(node, retries=10, delay=5):
-    url = f"http://{node}:5000"
+# def get_video_files():
+#     return [os.path.join(VIDEO_DIR, f) for f in os.listdir(VIDEO_DIR)
+#             if f.lower().endswith((".mp4", ".mov", ".avi", ".mkv"))]
+
+def get_video_files():
+    video_files = []
+    for dir_path in VIDEO_DIRS:
+        dir_path = dir_path.strip()
+        if not os.path.isdir(dir_path):
+            continue
+        for f in os.listdir(dir_path):
+            if f.lower().endswith((".mp4", ".mov", ".avi", ".mkv")):
+                video_files.append(os.path.join(dir_path, f))
+    return video_files
+
+def check_node_health(node):
+    try:
+        r = requests.get(f"http://{node}:5000/health", timeout=2)
+        return r.status_code == 200
+    except requests.RequestException:
+        return False
+
+def wait_until_available(node, retries=5, delay=5):
     for _ in range(retries):
-        try:
-            r = requests.get(f"{url}/health", timeout=2)
-            if r.status_code == 200:
-                print(f"{url} is healthy.")
-                return True
-        except requests.RequestException:
-            pass
+        if check_node_health(node):
+            print(f"http://{node}:5000 is healthy.")
+            return True
         time.sleep(delay)
-    print(f"{url} did not respond after {retries} retries.")
+    print(f"http://{node}:5000 did not respond after {retries} retries.")
     return False
 
-print("Checking node availability...")
-NODES = [node for node in NODES if wait_until_available(node)]
-
-if not NODES:
-    print("No available nodes to upload to.")
-    exit(1)
+def refresh_node_health():
+    while True:
+        for node in all_nodes:
+            if node not in healthy_nodes and check_node_health(node):
+                print(f"[HealthCheck] {node} is back online.")
+                with metrics_lock:
+                    healthy_nodes.add(node)
+        time.sleep(5)
 
 def upload_task(i):
     global success_count, total_count, latency_list
-
     attempt = 0
     success = False
     used_nodes = set()
 
     while attempt < 5 and not success:
         attempt += 1
-        # with metrics_lock:
-        #     total_count += 1
+        with metrics_lock:
+            available_nodes = list(healthy_nodes - used_nodes)
 
-        available_nodes = list(set(NODES) - used_nodes)
         if not available_nodes:
-            available_nodes = NODES
-            used_nodes.clear()
-        node = random.choice(available_nodes)
+            with metrics_lock:
+                available_nodes = list(healthy_nodes)
+                used_nodes.clear()
+
+        if not available_nodes:
+            print(f"[{i}] No healthy nodes available at attempt {attempt}")
+            time.sleep(2)
+            continue
+
+        # node = random.choice(available_nodes)
+        node = random.choice(["node1","node4"]) # Send only to nodes in FRA region
         used_nodes.add(node)
         url = f"http://{node}:5000/upload"
 
         try:
             video_file = random.choice(get_video_files())
             with open(video_file, 'rb') as f:
-                files = {"file": (os.path.basename(FILE), f, "video/mp4")}
+                headers = {
+                    "Content-Type": "video/mp4",
+                    "X-Filename": os.path.basename(video_file)
+                }
+                
                 start = time.time()
-                r = requests.post(url, files=files, timeout=15)
-                rtt = (time.time() - start) * 1000  # ms
+                r = requests.post(url, data=f, headers=headers, timeout=40)
+                
+                rtt = (time.time() - start) * 1000
 
                 if r.status_code == 200:
                     output_file = f"output_{i}.mp4"
@@ -73,29 +100,29 @@ def upload_task(i):
 
                     server_latency = float(r.headers.get("X-Processing-Latency", "0"))
                     total_latency = server_latency + rtt
-                    # network_rtt = rtt - server_latency
-                    # total_latency = server_latency + network_rtt
 
                     with metrics_lock:
                         success_count += 1
                         total_count += 1
                         latency_list.append(total_latency)
-                    print(f"[{i}] Uploaded {os.path.basename(video_file)} to {url} | total count: {total_count} | success: {success_count} | server latency: {round(server_latency,2)} ms | Latency: {round(total_latency,2)} ms")
+                    print(f"[{i}] Uploaded to {url} | success: {success_count} | latency: {round(total_latency,2)} ms")
                     success = True
                 else:
                     with metrics_lock:
                         total_count += 1
-                    print(f"[{i}] Attempt {attempt}: Status {r.status_code}")
+                        healthy_nodes.discard(node)
+                    print(f"[{i}] Attempt {attempt}: Status {r.status_code} - Marking {node} unhealthy")
+
         except Exception as e:
             with metrics_lock:
                 total_count += 1
-            print(f"[{i}] Attempt {attempt}: Exception: {e}")
+                healthy_nodes.discard(node)
+            print(f"[{i}] Attempt {attempt}: Exception: {e} - Marking {node} unhealthy")
 
 def push_metrics_periodically():
     global success_count, total_count, latency_list
     while True:
         time.sleep(PUSH_INTERVAL)
-        print("In push func")
         with metrics_lock:
             if total_count == 0:
                 continue
@@ -110,33 +137,57 @@ def push_metrics_periodically():
                 "total": total_count,
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
             }
-            
-            print(f"Push payload: {payload}")
+
+        try:
+            requests.post("http://central_server:8005/update_metrics", json=payload, timeout=5)
+            print(f"[Metrics] Sent: {payload}")
+        except Exception as e:
+            print(f"[Metrics] Failed to push: {e}")
+
+def clear_output_files():
+    for fname in os.listdir("."):
+        if fname.startswith("output_") and fname.endswith(".mp4"):
             try:
-                requests.post(f"http://central_server:8005/update_metrics", json=payload, timeout=5)
-                print(f"[Metrics] Sent: {payload}")
+                os.remove(fname)
             except Exception as e:
-                print(f"[Metrics] Failed to push: {e}")
+                print(f"Error deleting {fname}: {e}")
 
-# Start metric pusher thread
-metrics_thread = threading.Thread(target=push_metrics_periodically)
-metrics_thread.start()
+def rotate_output_files():
+    for fname in os.listdir("."):
+        if fname.startswith("output_") and fname.endswith(".mp4"):
+            new_name = fname.replace("output_", "output_prev_")
+            try:
+                os.replace(fname, new_name)
+            except Exception as e:
+                print(f"Error rotating {fname} → {new_name}: {e}")
 
-# Start concurrent uploads
-threads = [threading.Thread(target=upload_task, args=(i,)) for i in range(CONCURRENCY)]
-[t.start() for t in threads]
-[t.join() for t in threads]
+# Initial node health check
+print("Checking node availability...")
+for node in all_nodes:
+    if wait_until_available(node):
+        healthy_nodes.add(node)
 
-print("All uploads complete. Keeping client alive to push final metrics...")
+if not healthy_nodes:
+    print("No healthy nodes available. Exiting.")
+    exit(1)
 
+# Start background threads
+threading.Thread(target=push_metrics_periodically, daemon=True).start()
+threading.Thread(target=refresh_node_health, daemon=True).start()
+
+# Continuous upload batches
 try:
-    metrics_thread.join()  # block here forever unless interrupted
+    while True:
+        print("\n=== Starting new upload batch ===")
+        threads = [threading.Thread(target=upload_task, args=(i,)) for i in range(CONCURRENCY)]
+        [t.start() for t in threads]
+        [t.join() for t in threads]
+
+        print("Upload batch complete. Rotating output files...")
+        rotate_output_files()
+
+        print(f"Sleeping {PUSH_INTERVAL} seconds before next batch...\n")
+        time.sleep(PUSH_INTERVAL)
+
 except KeyboardInterrupt:
     print("Interrupted. Exiting...")
-
-# Keep the script running for metric pushes (e.g., CLI dashboards)
-# try:
-#     while True:
-#         time.sleep(60)
-# except KeyboardInterrupt:
-#     print("Exiting...")

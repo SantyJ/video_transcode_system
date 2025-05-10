@@ -7,7 +7,8 @@ import time
 app = FastAPI()
 
 # In-memory metrics storage
-metrics_store = {}  # { node_id: {metrics...} }
+metrics_store = {}          # { node_id: {metrics...} }
+system_metrics_store = {}   # { node_id: {cpu, mem, timestamp...} }
 
 @app.post("/update_metrics")
 async def update_metrics(request: Request):
@@ -19,27 +20,23 @@ async def update_metrics(request: Request):
     }
     return {"status": "received"}
 
+@app.post("/update_node_metrics")
+async def update_node_metrics(request: Request):
+    data = await request.json()
+    node_id = data.get("node_id", "unknown_node")
+    system_metrics_store[node_id] = {
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        **data
+    }
+    return {"status": "system_metrics_received"}
+
 @app.get("/metrics")
 async def get_metrics():
     return JSONResponse(content=metrics_store)
 
-# @app.get("/", response_class=HTMLResponse)
-# def dashboard():
-#     html = "<html><head><meta http-equiv='refresh' content='5'></head><body>"
-#     html += "<h1>🚀 Central Metrics Dashboard</h1><hr>"
-#     for node_id, metrics in metrics_store.items():
-#         html += f"<h2>Node: {node_id}</h2><ul>"
-#         for key, value in metrics.items():
-#             html += f"<li><b>{key}</b>: {value}</li>"
-#         html += "</ul><hr>"
-#     html += "</body></html>"
-#     return html
-
-# @app.get("/", response_class=HTMLResponse)
-# async def serve_dashboard():
-#     with open("dashboard.html", "r", encoding="utf-8") as f:
-#         html = f.read()
-#     return HTMLResponse(content=html)
+@app.get("/system_metrics")
+async def get_system_metrics():
+    return JSONResponse(content=system_metrics_store)
 
 # Mount the static directory to serve dashboard.html
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

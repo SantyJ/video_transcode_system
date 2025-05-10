@@ -24,3 +24,4 @@ watchfiles==1.0.5
 websockets==15.0.1
 cachetools==5.5.2
 requests==2.31.0
+aiofiles==23.2.1
