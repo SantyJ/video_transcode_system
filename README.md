@@ -119,7 +119,7 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 - The test duration is around ~3 minutes
 - Results / Expected behaviour are shown in our report under analysis section for this test. Refer Section 12 -> pages 18,19 in the report for this test.
 
-## To check Transcoded Video Outputs:
+## To check Transcoded Video Responses:
 
 - Access Client container's filesystem in Docker Desktop as shown below, and save one of the transcoded output video files (the transcoded response sent from the system node containers) to host system.
 
