@@ -83,7 +83,6 @@ services:
       - UPLOAD_FILE=tokyo_night.mp4
       - CONCURRENCY=100
       - VIDEO_DIRS=videos,10_50MB,10_50MB_v2
-      # - VIDEO_DIRS=50_100MB
     logging:
       driver: "json-file"
       options:
