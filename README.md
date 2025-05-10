@@ -13,21 +13,22 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 ## Prerequisites
 
 - **Docker Desktop** → [Download Docker Desktop](https://www.docker.com/products/docker-desktop/)  
-- WSL 2 (Windows Subsystem for Linux) backend enabled for Docker on Windows (if using WSL)  
+- If Using Windows we recommend setting up WSL 2 (Windows Subsystem for Linux)
+- Official Documentation for setting up Docker Desktop WSL 2 backend on Windows: https://docs.docker.com/desktop/features/wsl/
 
-> **Note:** This software was developed and tested in a Linux environment using **WSL 2 on Windows**. We strongly recommend running in **Linux or WSL** for consistent behavior and performance.
+> **Note:** This software was developed and tested in a Linux environment using **WSL 2 on Windows**.
 
 ## Instructions to Run the Software:
 
 - Clone this repo and cd to the repo directory
-- Run the System: docker-compose up --build
+- Run the System: `docker compose up --build`
     - This will start:
     - 5 transcoding nodes (node1 → node5)
     - A client container that sends video uploads every 5 seconds
     - A resource monitor container which ships cpu and memory metrics from node containers to the observability container
     - A central observability server (container) showing live metrics shipped from containers and the resource monitor
 
-- The System Activity can be at: http://localhost:8005/ (This displays all live metrics of the system)
+- The System Activity can be monitored in the observability dashboard. Access http://localhost:8005/ (This displays all live metrics of the system)
 - The Container logs can be monitored in Docker desktop as shown below:
 
 ![alt text](image.png)
@@ -36,7 +37,7 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 
 ## Instructions for Empirical Evaluation of the Software:
 
-# Comparing Random Offload Routing vs Our Score-based Routing Algorithm
+### Comparing Random Offload Routing vs Our Score-based Routing Algorithm
 
 - Under container_scripts directory, in main.py:
     - in line 322 un-comment the get_best_peer() function under the "Random Offloading" Comment.
@@ -48,9 +49,9 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 - Now, revert to the original main.py script and run the docker compose application.
 - Check the dashboard again for the same metrics and compare.
 
-- Check our project report to see comparison between the 2 offloading, reasoning and results based on these metrics.
+- Check our project report in this repo (CS553_Decentralized_Transcoder_System_sj1230_hr458_lk671.pdf) to see comparison between the 2 offloading logic, reasoning and results based on these metrics.
 
-# Comparing Round-Robin Offload Routing vs Our Score-based Routing Algorithm
+### Comparing Round-Robin Offload Routing vs Our Score-based Routing Algorithm
 
 - Under container_scripts directory, in main.py:
     - in line 338 un-comment the get_best_peer() function under the "Round-Robin offloading" Comment.
@@ -58,7 +59,7 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 
 - Rest of the steps remain the same as the previous test.
 
-# Fault Tolerance test (1 node down scenario)
+### Fault Tolerance test (1 node down scenario)
 
 - Run the docker compose app
 - Check the dashboard for CPU metrics
@@ -69,11 +70,29 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 
 - Check the latency and throughput metrics (graphs and tables) in dashboard
 
-# Fault Tolerance test (2 node down scenario)
+### Fault Tolerance test (2 node down scenario)
 
 - Similar to previous step but need to bring down 2 node containers.
 
-# Evaluating Offload Behavior Under Regional Saturation: RTT vs Load Bias
+### Evaluating Offload Behavior Under Regional Saturation: RTT vs Load Bias
 
-- In client/smart_upload.py comment line 78 and uncomment line 81
-- In container_scripts/main.py 
+#### RTT biased Offloading (Default Behavior)
+
+- In client/smart_upload.py comment line 78 and uncomment line 81. This is to simulate a local overload (send requests only to nodes in FRA region)
+- Run the Docker Compose application - the offloading is RTT biased by default.
+- Check the throughput, latency, offloads and responses and queue metrics in dashboard. Refer report to see reasoning and results based on these metrics.
+
+#### Load biased Offloading (Default Behavior)
+
+- In client/smart_upload.py comment line 78 and uncomment line 81. This is to simulate a local overload (send requests only to nodes in FRA region)
+- In container_scripts/client comment line 403 and uncomment 404 to simulate offloading biased towards lesser load (cpu + memory + job_queue_length)
+- Rest of the steps are similar to previous RTT biased offloading experiment.
+
+### Gossip Protocol Convergence Test:
+
+- For this test run the docker compose app with different config file: `docker compose -f docker-compose_ring_5.yml up --build`
+- Check each containers logs and search for the entry "All peers discovered" - this can be done in docker desktop as shown below:
+
+![alt text](image-2.png)
+
+- This gives us the time and number of gossip cycles the node needed to discover all peer nodes.
