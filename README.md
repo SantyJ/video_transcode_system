@@ -16,7 +16,7 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 - If Using Windows we recommend setting up WSL 2 (Windows Subsystem for Linux)
 - Official Documentation for setting up Docker Desktop WSL 2 backend on Windows: https://docs.docker.com/desktop/features/wsl/
 
-> **Note:** This software was developed and tested in a Linux environment using **WSL 2 on Windows**.
+> **Note:** This software was developed and tested in **WSL 2 on Windows**.
 
 ## Instructions to Run the Software:
 
@@ -52,7 +52,7 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 - Check the dashboard again for the same metrics and compare.
 
 - This test requires 2 runs - one for Random offloading and one for our score based Offloading. Each run takes approx. 3 minutes, so 6 minutes in total for running this test. The timings are approx. and might vary depending on different host systems and available resources. So, alternatively, rather than tracking time, you can scroll down the dashboard and check the client metrics (throughput and latency) summary table in the dashboard. When the total requests hit 300 (when significant transcode requests have been sent) you can start checking the other metrics in dashboard.
-- Results are shown in our report (CS553_Decentralized_Transcoder_System_sj1230_hr458_lk671.pdf) under analysis section for this test. Refer pages 6,7,8 (Section 6 and 7) in the report for this test.
+- Results / Expected behaviour is shown in our report (CS553_Decentralized_Transcoder_System_sj1230_hr458_lk671.pdf) under analysis section for this test. Refer pages 6,7,8 (Section 6 and 7) in the report for this test.
 
 ### Comparing Round-Robin Offload Routing vs Our Score-based Offload Algorithm
 
@@ -60,25 +60,35 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
     - in line 338 un-comment the get_best_peer() function under the "Round-Robin offloading" Comment.
     - comment the get_best_peer() function in line 358
 - Rest of the steps and the test duration remain the same as the previous test. 
-- Results are shown in our report under analysis section for this test. Refer pages 9,10,11 (Section 8 and 9) in the report for this test.
+- Results / Expected behaviour are shown in our report under analysis section for this test. Refer pages 9,10,11 (Section 8 and 9) in the report for this test.
 
 ### Fault Tolerance test (1 node i.e 20 % infrastructure down scenario)
 
 - Run the docker compose app
 - Check the dashboard for CPU metrics (The dashboard takes a few seconds to start showing the metrics)
-- Stop one of the nodes which have significant CPU load by doing -> docker stop <container_id for that node>
-- Check container id of containers in docker desktop:
+- Stop one of the nodes which have significant CPU load by doing -> `docker stop <container_id>`
+- Check container id of node containers in docker desktop:
 
 ![alt text](image.png)
 
+- You can make sure the stopped node is down by checking the CPU % (0.0 %) for that node in the dashboard.
 - Check the latency and throughput metrics (graphs and tables) in dashboard.
-- The test duration is around ~3 minutes.
-- Results are shown in our report under analysis section for this test. Refer pages 11,12,13 (Section 10.1) in the report for this test.
+- Start the node back up with: `docker compose up -d <container_id>`
+- Check node container logs in docker desktop - the container will discover it's peers and start accepting requests / offloads without any manual intervention.
+
+- Gossip discovery of peers:
+![alt text](image-3.png)
+
+- Accepting and offloading requests:
+![alt text](image-5.png)
+
+- The test duration is around ~6 minutes.
+- Results / Expected behaviour are shown in our report under analysis section for this test. Refer pages 11,12,13 (Section 10.1) in the report for this test.
 
 ### Fault Tolerance test (2 node i.e 40 % percent infrastructure down scenario)
 
 - Similar to previous step but need to bring down 2 node containers.
-- Results are shown in our report under analysis section for this test. Refer pages 13,14 (Section 10.2) in the report for this test.
+- Results / Expected behaviour are shown in our report under analysis section for this test. Refer pages 13,14 (Section 10.2) in the report for this test.
 
 ### Evaluating Offload Behavior Under Regional Saturation: RTT vs Load Bias
 
@@ -89,14 +99,14 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 - Check the throughput, latency, offloads and responses and queue metrics in dashboard. Refer report to see reasoning and results based on these metrics.
 (The dashboard takes a few seconds to start showing the metrics)
 - The test duration is around ~3 minutes. The timings are approx. and might vary depending on different host systems and available resources. Alternatively, rather than tracking time, you can scroll down the dashboard and check the client metrics (throughput and latency) summary table in the dashboard. When the total requests hit 300 (when significant transcode requests have been sent) you can start checking the other metrics in dashboard.
-- Results are shown in our report under analysis section for this test. Refer RTT Biased Routing (Section 11 -> pages 14,15,16) in the report for this test.
+- Results / Expected behaviour are shown in our report under analysis section for this test. Refer RTT Biased Routing (Section 11 -> pages 14,15,16) in the report for this test.
 
 #### Load biased Offloading
 
 - In client/smart_upload.py comment line 78 and uncomment line 81. This is to simulate a local overload (send requests only to nodes in FRA region)
 - In container_scripts/client comment line 403 and uncomment 404 to simulate offloading biased towards lesser load (cpu + memory + job_queue_length)
 - Rest of the steps and the test duration are similar to previous RTT biased offloading experiment.
-- Results are shown in our report under analysis section for this test. Refer Load Biased Routing (Section 11 -> pages 16,17,18) in the report for this test.
+- Results / Expected behaviour are shown in our report under analysis section for this test. Refer Load Biased Routing (Section 11 -> pages 16,17,18) in the report for this test.
 
 ### Gossip Protocol Convergence Test:
 
@@ -107,4 +117,4 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 
 - This gives us the time and number of gossip cycles the node needed to discover all peer nodes.
 - The test duration is around ~3 minutes
-- Results are shown in our report under analysis section for this test. Refer Section 12 -> pages 18,19 in the report for this test.
+- Results / Expected behaviour are shown in our report under analysis section for this test. Refer Section 12 -> pages 18,19 in the report for this test.
