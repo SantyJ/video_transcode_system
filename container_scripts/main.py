@@ -319,19 +319,6 @@ async def transcode(data: bytes) -> bytes:
         except Exception as e:
             print(f"[Cleanup] Error cleaning up files: {e}")
 
-# def get_best_peer():
-#     now = time.time()
-#     best = None
-#     best_score = float("inf")
-#     for peer, stats in peer_status.items():
-#         if now - stats["last_updated"] > 10:
-#             continue
-#         score = stats["cpu"] + stats["queue"]
-#         if score < best_score:
-#             best_score = score
-#             best = peer
-#     return best  # can be 'self' or 'nodeX:port'
-
 # Random offloading
 # def get_best_peer():
 #     now = time.time()

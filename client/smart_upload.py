@@ -75,8 +75,11 @@ def upload_task(i):
             time.sleep(2)
             continue
 
-        # node = random.choice(available_nodes)
-        node = random.choice(["node1","node4"]) # Send only to nodes in FRA region
+        node = random.choice(available_nodes)
+
+        # Simulate region load in FRA
+        # node = random.choice(["node1","node4"]) # Send only to nodes in FRA region
+        
         used_nodes.add(node)
         url = f"http://{node}:5000/upload"
 
