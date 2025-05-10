@@ -118,3 +118,11 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 - This gives us the time and number of gossip cycles the node needed to discover all peer nodes.
 - The test duration is around ~3 minutes
 - Results / Expected behaviour are shown in our report under analysis section for this test. Refer Section 12 -> pages 18,19 in the report for this test.
+
+### To check Transcoded Video Outputs:
+
+- Access Client container's filesystem in Docker Desktop as shown below, and save one of the transcoded output video files to host system.
+
+![alt text](image-6.png)
+
+- If you open the video file to view, you can notice that resolution is very low (the default task assigned to the transcoding system is to resize the video resolution to 360p)
