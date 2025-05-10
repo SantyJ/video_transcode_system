@@ -121,7 +121,7 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 
 ### To check Transcoded Video Outputs:
 
-- Access Client container's filesystem in Docker Desktop as shown below, and save one of the transcoded output video files to host system.
+- Access Client container's filesystem in Docker Desktop as shown below, and save one of the transcoded output video files (the transcoded response sent from the system node containers) to host system.
 
 ![alt text](image-6.png)
 
