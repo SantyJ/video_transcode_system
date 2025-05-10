@@ -59,7 +59,7 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 
 - Rest of the steps remain the same as the previous test.
 
-### Fault Tolerance test (1 node down scenario)
+### Fault Tolerance test (1 node i.e 20 % infrastructure down scenario)
 
 - Run the docker compose app
 - Check the dashboard for CPU metrics
@@ -70,7 +70,7 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 
 - Check the latency and throughput metrics (graphs and tables) in dashboard
 
-### Fault Tolerance test (2 node down scenario)
+### Fault Tolerance test (2 node i.e 40 % percent infrastructure down scenario)
 
 - Similar to previous step but need to bring down 2 node containers.
 
