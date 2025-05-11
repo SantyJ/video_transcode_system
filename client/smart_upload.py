@@ -157,8 +157,8 @@ def clear_output_files():
 
 def rotate_output_files():
     for fname in os.listdir("."):
-        if fname.startswith("output_") and fname.endswith(".mp4"):
-            new_name = fname.replace("output_", "output_prev_")
+        if fname.startswith("output_") and not fname.startswith("output_prev_") and fname.endswith(".mp4"):
+            new_name = fname.replace("output_", "output_prev_", 1)  # only replace first occurrence
             try:
                 os.replace(fname, new_name)
             except Exception as e:
