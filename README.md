@@ -40,7 +40,7 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 
 ## Demo Video:
 
-- Please refer to [`demo_video_link.txt`](./demo_video_link.txt) at the root of this repository for a link to view or download the demo video. 
+- Please refer to [`demo_video_link.txt`](./demo_video_link.txt) at the root of this repository for a link to our demonstration video.
 
 ## Instructions for Empirical Evaluation of the Software:
 
