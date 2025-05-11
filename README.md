@@ -40,7 +40,9 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 
 ## Demo Video:
 
-- Please refer to [`demo_video_link.txt`](./demo_video_link.txt) at the root of this repository for a link to our demonstration video.
+- Please refer to [`demo_video_link.txt`](./demo_video_link.txt) at the root of this repository for a link to our short demonstration video.
+- The video includes the application startup, overview of the key ideas of the project, and a walkthrough of the observability dashboard and it's metrics.
+- For more details on the implementation, analysis and results refer to the [Report](./CS553_Decentralized_Transcoder_System_sj1230_hr458_lk671.pdf).
 
 ## Instructions for Empirical Evaluation of the Software:
 
