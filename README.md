@@ -38,6 +38,8 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 
 ![alt text](image-1.png)
 
+> **Demo Video:** Please refer to [`demo_video_link.txt`](./demo_video_link.txt) at the root of this repository for a link to view or download the demo video. 
+
 ## Instructions for Empirical Evaluation of the Software:
 
 ### Comparing Random Offload Routing vs Our Score-based Offload Algorithm
