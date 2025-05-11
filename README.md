@@ -56,7 +56,7 @@ The goal of the project is to build a self-organizing, fault-tolerant system whe
 - Check the dashboard again for the same metrics and compare.
 
 - This test requires 2 runs - one for Random offloading and one for our score based Offloading. Each run takes approx. 3 minutes, so 6 minutes in total for running this test. The timings are approx. and might vary depending on different host systems and available resources. So, alternatively, rather than tracking time, you can scroll down the dashboard and check the client metrics (throughput and latency) summary table in the dashboard. When the total requests hit 300 (when significant transcode requests have been sent) you can start checking the other metrics in dashboard.
-- Results / Expected behaviour is shown in our report (CS553_Decentralized_Transcoder_System_sj1230_hr458_lk671.pdf) under analysis section for this test. Refer pages 6,7,8 (Section 6 and 7) in the report for this test.
+- Results / Expected behaviour is shown in our [Report](./CS553_Decentralized_Transcoder_System_sj1230_hr458_lk671.pdf) under analysis section for this test. Refer pages 6,7,8 (Section 6 and 7) in the report for this test.
 
 ### Comparing Round-Robin Offload Routing vs Our Score-based Offload Algorithm
 
